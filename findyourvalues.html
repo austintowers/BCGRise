@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Career Values Quiz</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f4f4f4; color: #333; }
+    h1 { color: #2c3e50; }
+    .question { margin-bottom: 20px; }
+    .options { margin-left: 20px; }
+    .btn { margin-top: 20px; padding: 10px 15px; background: #3498db; color: white; border: none; cursor: pointer; }
+    .btn:hover { background: #2980b9; }
+    #result { margin-top: 30px; font-weight: bold; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Career Values Quiz</h1>
+  <form id="quizForm">
+    <div class="question">
+      <p>1. What motivates you to get out of bed and go to work?</p>
+      <div class="options">
+        <label><input type="radio" name="q1" value="A"> A) Help others / make a difference</label><br>
+        <label><input type="radio" name="q1" value="B"> B) Grow and master new skills</label><br>
+        <label><input type="radio" name="q1" value="C"> C) Freedom to solve problems</label><br>
+        <label><input type="radio" name="q1" value="D"> D) Recognition or advancement</label><br>
+        <label><input type="radio" name="q1" value="E"> E) People I trust and care about</label>
+      </div>
+    </div>
+
+    <div class="question">
+      <p>2. What frustrates you most in a job?</p>
+      <div class="options">
+        <label><input type="radio" name="q2" value="A"> A) Lack of purpose</label><br>
+        <label><input type="radio" name="q2" value="B"> B) No growth opportunities</label><br>
+        <label><input type="radio" name="q2" value="C"> C) Micromanagement</label><br>
+        <label><input type="radio" name="q2" value="D"> D) Lack of recognition</label><br>
+        <label><input type="radio" name="q2" value="E"> E) Cold work relationships</label>
+      </div>
+    </div>
+
+    <div class="question">
+      <p>3. Which scenario excites you most?</p>
+      <div class="options">
+        <label><input type="radio" name="q3" value="A"> A) Project that changes lives</label><br>
+        <label><input type="radio" name="q3" value="B"> B) Steep learning curve</label><br>
+        <label><input type="radio" name="q3" value="C"> C) No rules, new ideas</label><br>
+        <label><input type="radio" name="q3" value="D"> D) Awards / promotion</label><br>
+        <label><input type="radio" name="q3" value="E"> E) Leading a bonded team</label>
+      </div>
+    </div>
+
+    <div class="question">
+      <p>4. Your proudest moment at work was...</p>
+      <div class="options">
+        <label><input type="radio" name="q4" value="A"> A) Seeing real impact</label><br>
+        <label><input type="radio" name="q4" value="B"> B) Personal growth</label><br>
+        <label><input type="radio" name="q4" value="C"> C) Full control of vision</label><br>
+        <label><input type="radio" name="q4" value="D"> D) Praise or reward</label><br>
+        <label><input type="radio" name="q4" value="E"> E) Part of a great team</label>
+      </div>
+    </div>
+
+    <div class="question">
+      <p>5. What kind of culture do you thrive in?</p>
+      <div class="options">
+        <label><input type="radio" name="q5" value="A"> A) Purpose-driven</label><br>
+        <label><input type="radio" name="q5" value="B"> B) Growth-oriented</label><br>
+        <label><input type="radio" name="q5" value="C"> C) Flexible and free</label><br>
+        <label><input type="radio" name="q5" value="D"> D) Competitive and rewarded</label><br>
+        <label><input type="radio" name="q5" value="E"> E) Collaborative and warm</label>
+      </div>
+    </div>
+
+    <button type="button" class="btn" onclick="calculateResult()">Submit</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    function calculateResult() {
+      const values = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+      for (let i = 1; i <= 5; i++) {
+        const answer = document.querySelector(`input[name=q${i}]:checked`);
+        if (answer) values[answer.value]++;
+      }
+      const sorted = Object.entries(values).sort((a, b) => b[1] - a[1]);
+      const top = sorted[0][0];
+      const themes = {
+        A: 'Impact & Purpose',
+        B: 'Growth & Mastery',
+        C: 'Autonomy & Innovation',
+        D: 'Recognition & Achievement',
+        E: 'Connection & Trust'
+      };
+      const message = `Your dominant career value is: <strong>${themes[top]}</strong>`;
+      document.getElementById('result').innerHTML = message;
+    }
+  </script>
+</body>
+</html>
