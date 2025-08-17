@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Transformation Discovery Survey</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --muted:#94a3b8; /* slate-400 */
+      --text:#e5e7eb; /* gray-200 */
+      --brand:#38bdf8; /* sky-400 */
+      --accent:#a78bfa; /* violet-400 */
+      --ok:#34d399; /* green-400 */
+      --warn:#fbbf24; /* amber-400 */
+      --danger:#f87171; /* red-400 */
+      --chip:#1f2937; /* gray-800 */
+      --border:#374151; /* gray-700 */
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1024,#0f172a);color:var(--text);font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{position:sticky;top:0;background:rgba(17,24,39,.85);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--border);z-index:10}
+    header .wrap{display:flex;align-items:center;gap:16px;padding:14px 20px;max-width:1100px;margin:0 auto}
+    h1{font-size:20px;margin:0}
+    main{max-width:1100px;margin:24px auto;padding:0 20px 80px}
+    .card{background:linear-gradient(180deg,#0f172a,#0b1227);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card h2{margin:0 0 8px;font-size:18px}
+    .hint{color:var(--muted);font-size:13px;margin:6px 0 12px}
+    fieldset{border:none;margin:0;padding:0;display:grid;gap:12px}
+    label{display:block;font-weight:600;margin:6px 0}
+    input[type=text],input[type=number],textarea,select{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--border);background:#0b1024;color:var(--text);outline:none}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
+    .col-4{grid-column:span 4}
+    .col-6{grid-column:span 6}
+    .col-12{grid-column:span 12}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{background:var(--chip);padding:8px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px}
+    .controls{position:sticky;bottom:0;background:rgba(17,24,39,.92);backdrop-filter:saturate(140%) blur(8px);border-top:1px solid var(--border);padding:10px}
+    .controls .wrap{max-width:1100px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{border:none;padding:10px 14px;border-radius:12px;color:#0b1024;background:var(--brand);font-weight:700;cursor:pointer}
+    button.secondary{background:#1f2937;color:var(--text);border:1px solid var(--border)}
+    button.warn{background:var(--warn);}
+    button.danger{background:var(--danger);}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#0b1024;border:1px solid var(--border);color:var(--muted)}
+    .two-col{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+    .grid-3{display:grid;gap:10px;grid-template-columns:repeat(3,1fr)}
+    details{border:1px dashed var(--border);border-radius:12px;padding:10px}
+    summary{cursor:pointer}
+    .section-index{display:flex;flex-wrap:wrap;gap:8px}
+    .index-item{padding:6px 10px;border-radius:999px;background:#0b1024;border:1px solid var(--border);font-size:12px}
+    .required::after{content:" *";color:var(--warn)}
+    .footer-note{color:var(--muted);font-size:12px;margin-top:8px}
+    .small{font-size:12px;color:var(--muted)}
+    .hr{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:10px 0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3z"/><path d="M14 14h7v7h-7z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>
+      <h1>Digital Transformation Discovery Survey</h1>
+      <span class="pill" id="progressPill">0% complete</span>
+    </div>
+  </header>
+  <main>
+
+    <div class="card">
+      <h2>How to use</h2>
+      <div class="hint">Fill each section. Use <strong>Save Draft</strong> to store progress locally. Use <strong>Download JSON</strong> for sharing. Print to PDF for sign-off.</div>
+      <div class="section-index" id="sectionIndex"></div>
+    </div>
+
+    <!-- Section 1: Business Strategy & Vision -->
+    <section class="card" data-section="Business Strategy & Vision">
+      <h2>1) Business Strategy & Vision</h2>
+      <div class="hint">3-year view, directional bets, external forces.</div>
+      <fieldset>
+        <label class="required">Top 3–5 strategic goals</label>
+        <div class="row">
+          <input class="col-6" type="text" name="goals[]" placeholder="Goal 1" required>
+          <input class="col-6" type="text" name="goals[]" placeholder="Goal 2" required>
+          <input class="col-6" type="text" name="goals[]" placeholder="Goal 3" required>
+          <input class="col-6" type="text" name="goals[]" placeholder="Goal 4 (optional)">
+          <input class="col-12" type="text" name="goals[]" placeholder="Goal 5 (optional)">
+        </div>
+        <label>How leadership defines success (check all)</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="success" value="Growth"> Growth</label>
+          <label class="chip"><input type="checkbox" name="success" value="Efficiency"> Efficiency</label>
+          <label class="chip"><input type="checkbox" name="success" value="Innovation"> Innovation</label>
+          <label class="chip"><input type="checkbox" name="success" value="Experience"> Customer/Patient Experience</label>
+          <label class="chip"><input type="checkbox" name="success" value="Compliance"> Compliance & Risk</label>
+          <label class="chip"><input type="checkbox" name="success" value="Other"> Other</label>
+        </div>
+        <label>External forces shaping strategy</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="forces" value="Regulatory"> Regulatory</label>
+          <label class="chip"><input type="checkbox" name="forces" value="Competition"> Competition</label>
+          <label class="chip"><input type="checkbox" name="forces" value="Market"> Market/Expectations</label>
+          <label class="chip"><input type="checkbox" name="forces" value="Tech"> Emerging Tech</label>
+          <label class="chip"><input type="checkbox" name="forces" value="Other"> Other</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 2: Operating Model & Organisation -->
+    <section class="card" data-section="Operating Model & Organisation">
+      <h2>2) Operating Model & Organisation</h2>
+      <fieldset>
+        <label>Structure</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="structure" value="Centralised"> Centralised</label>
+          <label class="chip"><input type="radio" name="structure" value="Decentralised"> Decentralised</label>
+          <label class="chip"><input type="radio" name="structure" value="Hybrid"> Hybrid</label>
+          <label class="chip"><input type="radio" name="structure" value="Other"> Other</label>
+        </div>
+        <label>Digital maturity (self-assessment)</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="maturity" value="Low"> Low</label>
+          <label class="chip"><input type="radio" name="maturity" value="Medium"> Medium</label>
+          <label class="chip"><input type="radio" name="maturity" value="High"> High</label>
+        </div>
+        <label>IT/digital governance model</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="governance" value="Central IT-led"> Central IT-led</label>
+          <label class="chip"><input type="radio" name="governance" value="Federated"> Federated</label>
+          <label class="chip"><input type="radio" name="governance" value="Ad-hoc"> Ad-hoc</label>
+          <label class="chip"><input type="radio" name="governance" value="Other"> Other</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 3: Business Capabilities & Processes -->
+    <section class="card" data-section="Business Capabilities & Processes">
+      <h2>3) Business Capabilities & Processes</h2>
+      <fieldset>
+        <label>Mission-critical capabilities (tick or list)</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="capabilities" value="Finance"> Finance</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Procurement"> Procurement</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="HR/Manpower"> HR/Manpower</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Healthcare Delivery"> Healthcare Delivery</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Strategic Communications"> Strategic Communications</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Audit & Risk"> Audit & Risk</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Legal & Compliance"> Legal & Compliance</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Infrastructure / Facilities"> Infrastructure / Facilities</label>
+          <label class="chip"><input type="checkbox" name="capabilities" value="Other"> Other</label>
+        </div>
+        <label>Manual / paper-based processes to digitise</label>
+        <textarea name="manual_to_digital" placeholder="List processes…"></textarea>
+        <label>Highest operational risk processes (if disrupted)</label>
+        <textarea name="high_risk_processes" placeholder="List processes…"></textarea>
+      </fieldset>
+    </section>
+
+    <!-- Section 4: Technology Landscape -->
+    <section class="card" data-section="Technology Landscape">
+      <h2>4) Technology Landscape</h2>
+      <fieldset>
+        <div class="two-col">
+          <div>
+            <label>ERP</label>
+            <input type="text" name="erp" placeholder="e.g., SAP S/4HANA, Oracle, MS Dynamics…">
+          </div>
+          <div>
+            <label>HCM</label>
+            <input type="text" name="hcm" placeholder="e.g., Workday, SAP SF, Oracle HCM…">
+          </div>
+          <div>
+            <label>CRM</label>
+            <input type="text" name="crm" placeholder="e.g., Salesforce, Dynamics…">
+          </div>
+          <div>
+            <label>EHR</label>
+            <input type="text" name="ehr" placeholder="If applicable…">
+          </div>
+        </div>
+        <label>Other core platforms</label>
+        <textarea name="other_platforms" placeholder="Data platform, integration, ITSM, CLM, P2P, treasury, etc."></textarea>
+
+        <label>Where is fragmentation / data silos most acute?</label>
+        <textarea name="fragmentation" placeholder="Describe duplication, shadow IT, siloed data…"></textarea>
+
+        <label>Cloud strategy</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="cloud" value="Opportunistic"> Opportunistic adoption</label>
+          <label class="chip"><input type="radio" name="cloud" value="Cloud-first"> Cloud-first</label>
+          <label class="chip"><input type="radio" name="cloud" value="On-prem"> Still largely on-prem</label>
+          <label class="chip"><input type="radio" name="cloud" value="Other"> Other</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 5: Data & Analytics -->
+    <section class="card" data-section="Data & Analytics">
+      <h2>5) Data & Analytics</h2>
+      <fieldset>
+        <label>Data management practices in place</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="data_mgmt" value="MDM"> MDM</label>
+          <label class="chip"><input type="checkbox" name="data_mgmt" value="Catalog"> Data Catalog</label>
+          <label class="chip"><input type="checkbox" name="data_mgmt" value="Governance"> Data Governance Framework</label>
+          <label class="chip"><input type="checkbox" name="data_mgmt" value="None"> None / Ad-hoc</label>
+        </div>
+        <label>Decisions you want to enable with better analytics</label>
+        <textarea name="analytics_decisions" placeholder="Top decisions / dashboards / models…"></textarea>
+        <label>Compliance with privacy & sector regs (current state)</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="privacy" value="Strong"> Strong & formalised</label>
+          <label class="chip"><input type="radio" name="privacy" value="Partial"> Partial / evolving</label>
+          <label class="chip"><input type="radio" name="privacy" value="Minimal"> Minimal / ad-hoc</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 6: Security & Risk -->
+    <section class="card" data-section="Security & Risk">
+      <h2>6) Security & Risk</h2>
+      <fieldset>
+        <label>Cybersecurity maturity (check what applies)</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="security" value="Zero Trust"> Zero Trust implemented</label>
+          <label class="chip"><input type="checkbox" name="security" value="IAM"> IAM</label>
+          <label class="chip"><input type="checkbox" name="security" value="SIEM/SOC"> SIEM/SOC</label>
+          <label class="chip"><input type="checkbox" name="security" value="DR/BCP"> DR/BCP tested</label>
+        </div>
+        <label>Top areas of vulnerability</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="vulnerability" value="External"> External threats</label>
+          <label class="chip"><input type="radio" name="vulnerability" value="Insider"> Insider risks</label>
+          <label class="chip"><input type="radio" name="vulnerability" value="Third-party"> Third-party vendors</label>
+          <label class="chip"><input type="radio" name="vulnerability" value="Other"> Other</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 7: Innovation & Culture -->
+    <section class="card" data-section="Innovation & Culture">
+      <h2>7) Innovation & Culture</h2>
+      <fieldset>
+        <label>Current mechanisms to foster innovation</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="innovation" value="Labs"> Labs / Sandboxes</label>
+          <label class="chip"><input type="checkbox" name="innovation" value="Hackathons"> Hackathons / Challenges</label>
+          <label class="chip"><input type="checkbox" name="innovation" value="Partnerships"> Partnerships</label>
+          <label class="chip"><input type="checkbox" name="innovation" value="Pilots"> Pilots / POCs</label>
+          <label class="chip"><input type="checkbox" name="innovation" value="None"> Not formalised yet</label>
+        </div>
+        <label>Appetite for emerging tech</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="emerging" value="AI/ML"> AI / ML</label>
+          <label class="chip"><input type="checkbox" name="emerging" value="Automation/RPA"> Automation / RPA</label>
+          <label class="chip"><input type="checkbox" name="emerging" value="IoT/Edge"> IoT / Edge</label>
+          <label class="chip"><input type="checkbox" name="emerging" value="AR/VR"> AR/VR</label>
+          <label class="chip"><input type="checkbox" name="emerging" value="Blockchain"> Blockchain</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Section 8: Financials & Constraints -->
+    <section class="card" data-section="Financials & Constraints">
+      <h2>8) Financials & Constraints</h2>
+      <fieldset>
+        <div class="grid-3">
+          <div>
+            <label>CAPEX limits</label>
+            <input type="text" name="capex" placeholder="e.g., SGD amount / guardrails">
+          </div>
+          <div>
+            <label>OPEX limits</label>
+            <input type="text" name="opex" placeholder="e.g., SGD amount / guardrails">
+          </div>
+          <div>
+            <label>Headcount / skills gaps</label>
+            <input type="text" name="headcount" placeholder="e.g., data engineers, solution architects…">
+          </div>
+        </div>
+        <label>Other constraints or non-negotiables</label>
+        <textarea name="constraints" placeholder="Security/compliance, vendor lock-in, deadlines, change windows…"></textarea>
+      </fieldset>
+      <div class="footer-note">After completing, use <strong>Download JSON</strong> to export answers for roadmap design.</div>
+    </section>
+
+    <div class="hr"></div>
+    <details class="card">
+      <summary>Preview JSON (read-only)</summary>
+      <pre id="jsonPreview" style="white-space:pre-wrap"></pre>
+    </details>
+
+  </main>
+
+  <div class="controls">
+    <div class="wrap">
+      <button id="saveDraft" type="button" title="Saves to this browser only">Save Draft</button>
+      <button class="secondary" id="loadDraft" type="button">Load Draft</button>
+      <button class="secondary" id="clearDraft" type="button">Clear Draft</button>
+      <button id="downloadJson" type="button">Download JSON</button>
+      <button class="secondary" onclick="window.print()" type="button">Print / Save PDF</button>
+      <span class="small" id="statusText"></span>
+    </div>
+  </div>
+
+  <script>
+    // Utility: collect values from form controls
+    function collect(){
+      const data = {};
+      const form = document.body;
+      // Text inputs & textareas
+      form.querySelectorAll('input[type=text], input[type=number], textarea').forEach(el=>{
+        const name = el.name.replace('[]','');
+        if(!data[name]) data[name] = Array.isArray(el.name.match(/\[\]$/))?[]:null;
+      });
+      // Arrays (goals[])
+      const arrays = {};
+      form.querySelectorAll('input[name$="[]"]').forEach(el=>{
+        const key = el.name.replace('[]','');
+        if(!arrays[key]) arrays[key] = [];
+        if(el.value.trim()) arrays[key].push(el.value.trim());
+      });
+      // Checkboxes (grouped by name)
+      const checkboxGroups = {};
+      form.querySelectorAll('input[type=checkbox]').forEach(el=>{
+        const name = el.name;
+        if(!checkboxGroups[name]) checkboxGroups[name] = [];
+        if(el.checked) checkboxGroups[name].push(el.value);
+      });
+      // Radios (single value per name)
+      const radios = {};
+      form.querySelectorAll('input[type=radio]').forEach(el=>{
+        const name = el.name;
+        if(!radios[name]) radios[name] = null;
+        if(el.checked) radios[name] = el.value;
+      });
+      // Single text/textarea by name
+      form.querySelectorAll('input[type=text], input[type=number], textarea').forEach(el=>{
+        if(!el.name.endsWith('[]')){
+          data[el.name] = el.value.trim();
+        }
+      });
+      // Merge arrays, checkboxes, radios
+      Object.assign(data, arrays, checkboxGroups, radios);
+      return data;
+    }
+
+    function updatePreview(){
+      const obj = collect();
+      document.getElementById('jsonPreview').textContent = JSON.stringify(obj, null, 2);
+      updateProgress();
+    }
+
+    function download(filename, text){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], {type:'application/json'}));
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function saveDraft(){
+      const obj = collect();
+      localStorage.setItem('dt_survey_v1', JSON.stringify(obj));
+      setStatus('Draft saved.');
+    }
+
+    function loadDraft(){
+      const raw = localStorage.getItem('dt_survey_v1');
+      if(!raw){ setStatus('No draft found.'); return; }
+      const obj = JSON.parse(raw);
+      // Restore text inputs
+      document.querySelectorAll('input[type=text], input[type=number], textarea').forEach(el=>{
+        const key = el.name.replace('[]','');
+        if(Array.isArray(obj[key]) && el.name.endsWith('[]')){
+          // arrays restored below
+        }else if(obj[el.name]!==undefined){
+          el.value = obj[el.name];
+        }
+      });
+      // Restore arrays (goals[])
+      const goals = obj['goals'];
+      if(Array.isArray(goals)){
+        const slots = document.querySelectorAll('input[name="goals[]"]');
+        slots.forEach((el,i)=>{ el.value = goals[i] || el.value; });
+      }
+      // Restore checkboxes
+      document.querySelectorAll('input[type=checkbox]').forEach(el=>{
+        const vals = obj[el.name];
+        el.checked = Array.isArray(vals) && vals.includes(el.value);
+      });
+      // Restore radios
+      document.querySelectorAll('input[type=radio]').forEach(el=>{
+        const val = obj[el.name];
+        el.checked = (val === el.value);
+      });
+      updatePreview();
+      setStatus('Draft loaded.');
+    }
+
+    function setStatus(msg){
+      const el = document.getElementById('statusText');
+      el.textContent = msg;
+      setTimeout(()=>{ el.textContent=''; }, 3000);
+    }
+
+    function updateProgress(){
+      // naive completion metric: count filled text/textarea + selected groups
+      const total = 40; // heuristic denominator
+      let score = 0;
+      document.querySelectorAll('input[type=text], textarea').forEach(el=>{ if(el.value.trim()) score++; });
+      const checkboxNames = new Set();
+      document.querySelectorAll('input[type=checkbox]').forEach(el=>checkboxNames.add(el.name));
+      checkboxNames.forEach(name=>{
+        const any = Array.from(document.querySelectorAll(`input[name="${name}"]`)).some(el=>el.checked);
+        if(any) score++;
+      });
+      const radioNames = new Set();
+      document.querySelectorAll('input[type=radio]').forEach(el=>radioNames.add(el.name));
+      radioNames.forEach(name=>{
+        const any = Array.from(document.querySelectorAll(`input[name="${name}"]`)).some(el=>el.checked);
+        if(any) score++;
+      });
+      const pct = Math.min(100, Math.round((score/total)*100));
+      document.getElementById('progressPill').textContent = pct + '% complete';
+    }
+
+    function buildIndex(){
+      const idx = document.getElementById('sectionIndex');
+      document.querySelectorAll('section.card').forEach((sec,i)=>{
+        const a = document.createElement('a');
+        a.className='index-item';
+        a.href = '#sec'+i;
+        a.textContent = sec.getAttribute('data-section');
+        sec.id = 'sec'+i;
+        idx.appendChild(a);
+      });
+    }
+
+    // Event wiring
+    document.addEventListener('input', updatePreview);
+    document.getElementById('saveDraft').addEventListener('click', saveDraft);
+    document.getElementById('loadDraft').addEventListener('click', loadDraft);
+    document.getElementById('clearDraft').addEventListener('click', ()=>{ localStorage.removeItem('dt_survey_v1'); setStatus('Draft cleared.'); });
+    document.getElementById('downloadJson').addEventListener('click', ()=>{
+      const data = collect();
+      download('digital_transformation_survey.json', JSON.stringify(data,null,2));
+    });
+
+    // Init
+    buildIndex();
+    updatePreview();
+  </script>
+</body>
+</html>
