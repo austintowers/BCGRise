@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modern Enterprise Architecture – Multiple‑Choice Quiz</title>
+  <style>
+    :root{
+      --bg:#0f172a;            /* slate-900 */
+      --panel:#111827cc;       /* semi‑transparent slate-800 */
+      --ink:#e5e7eb;           /* gray-200 */
+      --muted:#9ca3af;         /* gray-400 */
+      --brand:#60a5fa;         /* blue-400 */
+      --good:#34d399;          /* emerald-400 */
+      --bad:#fb7185;           /* rose-400 */
+      --warn:#f59e0b;          /* amber-500 */
+      --border:#1f2937;        /* slate-800 */
+    }
+    html,body{height:100%;}
+    body{
+      margin:0; font:16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink); background:radial-gradient(1200px 800px at 80% -20%, #1f2937 0%, #0b1022 40%, var(--bg) 70%);
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:32px 20px 56px;}
+    header{display:flex; gap:16px; align-items:center; margin-bottom:18px;}
+    .badge{font-size:12px; color:#0b1022; background:linear-gradient(90deg,#a5b4fc,#93c5fd); padding:4px 8px; border-radius:999px; font-weight:700; letter-spacing:.2px;}
+    h1{margin:.2rem 0 .4rem; font-size:clamp(22px,3.8vw,34px); letter-spacing:.2px}
+    p.lede{color:var(--muted); margin:0 0 14px}
+    .panel{background:linear-gradient(180deg, #0b1226cc, #0b1226b3); border:1px solid var(--border); border-radius:18px; box-shadow:0 10px 30px #0006;}
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border)}
+    .controls .right{display:flex; gap:10px; align-items:center}
+    button, .btn{appearance:none; border:1px solid #2a3750; background:#0e1531; color:var(--ink); padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; transition:transform .06s ease, background .2s ease, border-color .2s ease}
+    button:hover{background:#121a3a}
+    button:active{transform:translateY(1px)}
+    button.primary{background:linear-gradient(180deg, #2563eb, #1d4ed8); border-color:#1e40af}
+    button.primary:hover{background:linear-gradient(180deg,#1d4ed8,#1e40af)}
+    button.ghost{background:transparent}
+
+    form{padding:10px 16px 18px}
+    fieldset{border:1px solid var(--border); border-radius:16px; padding:16px; margin:14px 0; background:#0c132dcc}
+    legend{padding:0 8px; color:#c7d2fe; font-weight:700}
+    .qtext{margin:.2rem 0 .6rem; font-size:1.02rem}
+
+    .option{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:12px; border:1px solid transparent;}
+    .option + .option{margin-top:6px}
+    .option input{margin-top:3px}
+    .option label{cursor:pointer; display:block}
+
+    .option.correct{background:#032616; border-color:#0b5d33}
+    .option.correct mark{background:none; color:var(--good); font-weight:700}
+    .option.wrong{background:#320c16; border-color:#6b1121}
+    .option.wrong mark{background:none; color:var(--bad); font-weight:700}
+
+    .explain{margin-top:8px; padding:10px 12px; border-left:3px solid #243b67; background:#0a112a; border-radius:8px}
+    .explain strong{color:#bfdbfe}
+
+    .scorebox{display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; border-top:1px dashed var(--border)}
+    .score{font-size:1.1rem; font-weight:800}
+    .score .pct{color:#93c5fd}
+    .score .grade{padding:2px 8px; border-radius:999px; margin-left:8px; font-size:.88rem}
+
+    .grade.good{background:#052e22; color:#34d399; border:1px solid #0b5d33}
+    .grade.ok{background:#2b1d04; color:#f59e0b; border:1px solid #8a5f05}
+    .grade.bad{background:#3a0c14; color:#fb7185; border:1px solid #6b1121}
+
+    .footer-note{color:var(--muted); font-size:.86rem; margin-top:10px}
+    .hidden{display:none !important}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge" title="Designed by an enterprise architect">MBB‑Style EA</span>
+      <h1>Modern Enterprise Architecture – 20‑Question Quiz</h1>
+    </header>
+    <p class="lede">Assess your grasp of contemporary EA practices (TOGAF, cloud‑native, data mesh, security, and more). Select the best answer for each item, then submit to see your score and explanations.</p>
+
+    <section class="panel" aria-labelledby="quiz-title">
+      <div class="controls">
+        <div class="left">
+          <strong id="quiz-title">Your Responses</strong>
+          <span id="progress" class="footer-note"></span>
+        </div>
+        <div class="right">
+          <button id="shuffleBtn" type="button" class="ghost" title="Shuffle question order">Shuffle</button>
+          <button id="resetBtn" type="button" class="ghost" title="Clear all selections">Reset</button>
+          <button id="submitBtn" type="button" class="primary">Submit Answers</button>
+        </div>
+      </div>
+
+      <form id="quizForm" novalidate></form>
+
+      <div class="scorebox hidden" id="scoreBox" aria-live="polite"></div>
+    </section>
+
+    <p class="footer-note">Tip: Use this with teams to spark discussion on target architecture, governance, and modernization options.</p>
+  </div>
+
+  <script>
+    // --- Quiz Data ---------------------------------------------------------
+    /** Each question contains: text, options[4], correct (index), explanation */
+    const QUESTIONS = [
+      {
+        text: "What is the primary purpose of Enterprise Architecture (EA)?",
+        options: [
+          "To enforce a single coding style across all teams",
+          "To align business and technology and guide change toward strategy",
+          "To replace project and product management functions",
+          "To manage HR policies and performance reviews"
+        ],
+        correct: 1,
+        explanation: "EA provides a coherent blueprint that aligns business goals with technology capabilities and informs investment decisions and change.",
+      },
+      {
+        text: "In TOGAF's ADM, which phase focuses on governing the implementation of the target architecture?",
+        options: ["Phase E — Opportunities & Solutions", "Phase F — Migration Planning", "Phase G — Implementation Governance", "Phase H — Architecture Change Management"],
+        correct: 2,
+        explanation: "Phase G ensures solutions conform to the architecture via governance during implementation.",
+      },
+      {
+        text: "In ArchiMate, which viewpoint best illustrates end‑to‑end value delivery across capabilities?",
+        options: ["Motivation viewpoint", "Value Stream viewpoint", "Application Cooperation viewpoint", "Technology Usage viewpoint"],
+        correct: 1,
+        explanation: "The Value Stream viewpoint shows how value is created across stages and capabilities to realize outcomes.",
+      },
+      {
+        text: "A key microservices principle is that services should be…",
+        options: [
+          "Sharing a single relational database schema",
+          "Independently deployable and own their data",
+          "Deployed as part of a single monolithic image",
+          "Managed by a central ESB that transforms all payloads inside the bus"
+        ],
+        correct: 1,
+        explanation: "Owning data and independent deployability reduce coupling and enable autonomous teams.",
+      },
+      {
+        text: "What is a core responsibility of an API Gateway?",
+        options: [
+          "Running nightly ETL jobs",
+          "Request routing, authentication/authorization, and rate limiting",
+          "Storing all enterprise master data",
+          "Compiling application code for deployment"
+        ],
+        correct: 1,
+        explanation: "Gateways broker traffic, enforce security policies, and provide cross‑cutting concerns like throttling.",
+      },
+      {
+        text: "A major benefit of event‑driven architecture is…",
+        options: [
+          "Tighter coupling between services",
+          "Strong consistency across all services by default",
+          "Decoupling and scalability through asynchronous messaging",
+          "Easier debugging because flows are always linear"
+        ],
+        correct: 2,
+        explanation: "Publish/subscribe and asynchronous events decouple producers from consumers and improve scalability.",
+      },
+      {
+        text: "Which statement best reflects a Data Mesh principle?",
+        options: [
+          "Centralized monolithic data lake team owns all datasets",
+          "Point‑to‑point data sharing via direct database access",
+          "Domain‑oriented teams own ‘data as a product’ with self‑serve platforms",
+          "All analytics must be built inside the operational system"
+        ],
+        correct: 2,
+        explanation: "Data Mesh promotes domain ownership, product thinking, and a governed self‑serve data platform.",
+      },
+      {
+        text: "Zero Trust security is best summarized as…",
+        options: [
+          "Trust anything inside the network perimeter",
+          "Never trust, always verify; least privilege with continuous validation",
+          "Single sign‑on eliminates the need for authorization",
+          "Rely on a VPN to grant full access"
+        ],
+        correct: 1,
+        explanation: "Zero Trust requires verifying every request, minimizing privileges, and continuously assessing trust.",
+      },
+      {
+        text: "Which is recommended by the Twelve‑Factor App methodology?",
+        options: [
+          "Persist user session state in process memory",
+          "Store configuration in environment variables; keep processes stateless",
+          "Bundle OS‑level dependencies within application code",
+          "Write logs to local files and rotate them manually"
+        ],
+        correct: 1,
+        explanation: "Twelve‑Factor promotes stateless processes and config via the environment for portability and scalability.",
+      },
+      {
+        text: "Under a network partition, the CAP theorem says a distributed system must choose between…",
+        options: [
+          "Latency and throughput",
+          "Consistency and availability",
+          "Durability and scalability",
+          "Security and usability"
+        ],
+        correct: 1,
+        explanation: "With partitions, you can provide either consistent reads/writes or high availability, not both.",
+      },
+      {
+        text: "What distinguishes observability from basic monitoring?",
+        options: [
+          "Observability only tracks CPU and memory",
+          "It is the ability to infer internal state from outputs using metrics, logs, and traces",
+          "It replaces incident response entirely",
+          "It requires agents on every database server"
+        ],
+        correct: 1,
+        explanation: "Observability enables understanding of complex systems via high‑quality telemetry to answer unknown questions.",
+      },
+      {
+        text: "Which pattern helps a system fail fast and avoid cascading failures?",
+        options: ["Aggregator", "Ambassador", "Circuit Breaker", "Strangler Fig"],
+        correct: 2,
+        explanation: "Circuit breakers trip on failures/timeouts to stop calls to unhealthy dependencies and allow recovery.",
+      },
+      {
+        text: "The Saga pattern is primarily used to…",
+        options: [
+          "Cache API responses at the edge",
+          "Manage distributed transactions via a sequence of local steps and compensations",
+          "Encrypt data at rest in microservices",
+          "Batch data into a warehouse"
+        ],
+        correct: 1,
+        explanation: "Sagas coordinate long‑running business processes across services using local transactions and compensations.",
+      },
+      {
+        text: "Which platform primarily orchestrates containerized workloads?",
+        options: ["Jenkins", "Kubernetes", "Terraform", "Nginx"],
+        correct: 1,
+        explanation: "Kubernetes schedules and orchestrates containers, handling scaling, healing, and service discovery.",
+      },
+      {
+        text: "A robust enterprise IAM approach for SaaS and internal apps is…",
+        options: [
+          "Local user stores per app with shared passwords",
+          "Federated identity with SSO using SAML/OIDC and centralized policy",
+          "Embedding credentials in code and rotating monthly",
+          "Using a firewall to control user access"
+        ],
+        correct: 1,
+        explanation: "Federation with SAML/OIDC and centralized authorization simplifies access and strengthens security.",
+      },
+      {
+        text: "Which artifact records why a key architecture choice was made and its consequences?",
+        options: ["User Story", "Burndown Chart", "Entity‑Relationship Diagram", "Architecture Decision Record (ADR)"] ,
+        correct: 3,
+        explanation: "ADRs capture context, decision, alternatives, and consequences for durable governance.",
+      },
+      {
+        text: "What problem does the Strangler Fig pattern address?",
+        options: [
+          "Schema migration inside a single database",
+          "Incrementally replacing a legacy system by routing features to new services",
+          "Encrypting data in transit between services",
+          "Reducing mobile app bundle size"
+        ],
+        correct: 1,
+        explanation: "The pattern enables stepwise modernization by strangling legacy functionality behind a facade.",
+      },
+      {
+        text: "When decomposing a monolith, what is generally the best first step?",
+        options: [
+          "Rewrite everything in a new language",
+          "Scale the database vertically",
+          "Identify bounded contexts and seams via domain analysis",
+          "Introduce a service mesh before splitting services"
+        ],
+        correct: 2,
+        explanation: "Start with domain‑driven design to find stable boundaries that minimize cross‑service coupling.",
+      },
+      {
+        text: "Which term refers to the actual metric that measures service performance (e.g., latency p99)?",
+        options: ["SLA", "SLO", "SLI", "OLAP"],
+        correct: 2,
+        explanation: "SLIs are measurements; SLOs are targets; SLAs are external commitments often with penalties.",
+      },
+      {
+        text: "Which statement best defines a business capability?",
+        options: [
+          "A specific software feature built by a team",
+          "A temporary project to deliver value",
+          "What the business does (the 'what'), stable over time, independent of who/how",
+          "A set of servers and networks that run an application"
+        ],
+        correct: 2,
+        explanation: "Capabilities express the stable ‘what’; processes, org, and systems realize and enable them.",
+      }
+    ];
+
+    // --- Render ------------------------------------------------------------
+    const form = document.getElementById('quizForm');
+    const scoreBox = document.getElementById('scoreBox');
+    const progressEl = document.getElementById('progress');
+
+    function render(questions){
+      form.innerHTML = '';
+      questions.forEach((q, i) => {
+        const fs = document.createElement('fieldset');
+        fs.innerHTML = `
+          <legend>Question ${i+1}</legend>
+          <div class="qtext">${q.text}</div>
+        `;
+        q.options.forEach((opt, idx) => {
+          const id = `q${i}_o${idx}`;
+          const wrapper = document.createElement('div');
+          wrapper.className = 'option';
+          wrapper.innerHTML = `
+            <input type="radio" id="${id}" name="q${i}" value="${idx}" aria-labelledby="${id}_label" />
+            <label id="${id}_label" for="${id}">${opt}</label>
+          `;
+          fs.appendChild(wrapper);
+        });
+        const exp = document.createElement('div');
+        exp.className = 'explain hidden';
+        exp.innerHTML = `<strong>Explanation:</strong> <span></span>`;
+        fs.appendChild(exp);
+        form.appendChild(fs);
+      });
+      updateProgress();
+    }
+
+    function updateProgress(){
+      const total = QUESTIONS.length;
+      const answered = [...form.querySelectorAll('fieldset')]
+        .reduce((acc, fs, i) => acc + (fs.querySelector(`input[name="q${i}"]:checked`) ? 1 : 0), 0);
+      progressEl.textContent = `${answered}/${total} answered`;
+    }
+
+    // --- Scoring -----------------------------------------------------------
+    function grade(){
+      let score = 0;
+      const total = QUESTIONS.length;
+
+      QUESTIONS.forEach((q, i) => {
+        const selected = form.querySelector(`input[name="q${i}"]:checked`);
+        const options = form.querySelectorAll(`input[name="q${i}"]`);
+        const fs = options[0]?.closest('fieldset');
+        const explain = fs.querySelector('.explain');
+        if(!selected){
+          // mark unanswered subtly
+          fs.style.outline = `2px dashed var(--warn)`;
+          fs.style.outlineOffset = '2px';
+        } else {
+          fs.style.outline = '';
+        }
+        options.forEach((opt, idx) => {
+          const row = opt.closest('.option');
+          row.classList.remove('correct','wrong');
+          const isCorrect = idx === q.correct;
+          if(opt.checked && isCorrect){
+            score++;
+            row.classList.add('correct');
+          } else if(opt.checked && !isCorrect){
+            row.classList.add('wrong');
+          }
+          // visually mark the right answer
+          if(isCorrect){
+            row.querySelector('label').innerHTML = `<mark>${row.querySelector('label').innerHTML}</mark>`;
+          }
+          opt.disabled = true;
+        });
+        explain.classList.remove('hidden');
+        explain.querySelector('span').textContent = q.explanation;
+      });
+
+      const pct = Math.round((score / total) * 100);
+      let gradeClass = 'bad';
+      let gradeLabel = 'Needs Work';
+      if(pct >= 85){ gradeClass = 'good'; gradeLabel = 'Excellent'; }
+      else if(pct >= 70){ gradeClass = 'ok'; gradeLabel = 'Solid'; }
+
+      scoreBox.classList.remove('hidden');
+      scoreBox.innerHTML = `
+        <div class="score">Score: <span class="pct">${score}/${total} (${pct}%)</span>
+          <span class="grade ${gradeClass}">${gradeLabel}</span>
+        </div>
+        <div class="footer-note">Review the explanations above. Use <em>Reset</em> to try again or <em>Shuffle</em> for a new order.</div>
+      `;
+    }
+
+    // --- Controls ----------------------------------------------------------
+    document.getElementById('submitBtn').addEventListener('click', grade);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      render(QUESTIONS);
+      scoreBox.classList.add('hidden');
+      scoreBox.innerHTML = '';
+    });
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      const shuffled = [...QUESTIONS].sort(() => Math.random() - 0.5);
+      render(shuffled);
+      scoreBox.classList.add('hidden');
+      scoreBox.innerHTML = '';
+    });
+
+    form.addEventListener('change', updateProgress);
+
+    // Initial render
+    render(QUESTIONS);
+  </script>
+</body>
+</html>
