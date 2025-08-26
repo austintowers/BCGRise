@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VP KPI Quiz Game</title>
+<style>
+  :root{
+    --bg:#0f1522; --panel:#131b2c; --ink:#e8eefc; --muted:#a9b4d0; --line:#22304d;
+    --accent:#7c9cff; --good:#2fa36d; --bad:#e05a5a; --warn:#e2b93b; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --radius:18px;
+    --chip:#1b2740; --pm:#f2a65a; --py:#b18cff; --budget:#5aa3ff; --fcst:#56d08b; --bench:#5d6b8c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:linear-gradient(180deg,#0b1120,#0f1522 30%, #0d1323 100%); color:var(--ink); font:500 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial}
+  .wrap{max-width:1100px; margin:0 auto; padding:28px 16px 80px}
+  header{position:sticky; top:0; z-index:5; backdrop-filter:saturate(140%) blur(10px); background:linear-gradient(180deg, rgba(13,19,35,.9), rgba(13,19,35,.65)); border-bottom:1px solid var(--line)}
+  header .wrap{display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; padding:14px 16px}
+  h1{margin:0; font-size:22px; letter-spacing:.2px}
+  .meta{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .pill{padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:var(--chip); font-weight:800; font-size:12px}
+  .score{background:color-mix(in srgb, var(--good) 20%, transparent)}
+  .lives{background:color-mix(in srgb, var(--bad) 15%, transparent)}
+  .level{background:color-mix(in srgb, var(--accent) 25%, transparent)}
+  .btn{appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer}
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+  .btn-primary{background:linear-gradient(180deg,#6e8bff,#5978ff); border-color:#6e8bff; color:#0b1120; box-shadow:var(--shadow)}
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px}
+  .card{grid-column:span 12; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px}
+  .center{display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center}
+  .legend{display:flex; gap:12px; align-items:center; color:var(--muted); font-size:12px}
+  .dot{width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px}
+  .progress{height:12px; background:#0c1222; border:1px solid var(--line); border-radius:999px; overflow:hidden}
+  .bar{height:100%; width:0%; background:linear-gradient(90deg,#2fa36d,#56d08b); transition:width .3s}
+  .question{display:grid; grid-template-columns:1fr; gap:12px}
+  .kpi-head{display:flex; justify-content:space-between; align-items:start; gap:8px}
+  .kpi-name{font-weight:900; font-size:18px}
+  .kpi-tags{display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:12px}
+  .statline{display:flex; gap:10px; flex-wrap:wrap}
+  .stat{background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:8px 10px; min-width:150px}
+  .stat small{display:block; color:var(--muted); font-size:11px}
+  .stat strong{display:block; font-size:18px}
+  .variance{padding:6px 10px; border-radius:999px; border:1px solid var(--line); font-weight:900; font-size:13px; display:inline-block}
+  .v-good{background:color-mix(in srgb, var(--good) 18%, transparent); color:#d8ffea}
+  .v-bad{background:color-mix(in srgb, var(--bad) 18%, transparent); color:#ffe6e6}
+  .v-warn{background:color-mix(in srgb, var(--warn) 18%, transparent); color:#fff6db}
+  .answers{display:grid; gap:10px}
+  .answer{display:flex; gap:10px; align-items:start; text-align:left; padding:12px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.03); cursor:pointer}
+  .answer:hover{background:rgba(255,255,255,.06)}
+  .answer.correct{outline:2px solid var(--good)}
+  .answer.wrong{outline:2px solid var(--bad)}
+  .explain{color:var(--muted); margin-top:6px; font-size:14px}
+  .footer{display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:12px}
+  .right{display:flex; gap:10px; align-items:center}
+  .hidden{display:none}
+  .chip{display:inline-flex; gap:6px; align-items:center; padding:6px 8px; border:1px solid var(--line); border-radius:999px; background:var(--chip); color:var(--ink); font-weight:700; font-size:12px}
+  .b-budget .dot{background:var(--budget)}
+  .b-forecast .dot{background:var(--fcst)}
+  .b-prevmonth .dot{background:var(--pm)}
+  .b-prevyear .dot{background:var(--py)}
+  .b-target .dot{background:var(--bench)}
+  .toast{position:fixed; bottom:18px; right:18px; background:#0c1222; border:1px solid var(--line); color:var(--ink); padding:10px 12px; border-radius:10px; box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>VP KPI Quiz Game</h1>
+    <div class="meta">
+      <span id="level-pill" class="pill level">Level: —</span>
+      <span id="score-pill" class="pill score">Score: 0</span>
+      <span id="lives-pill" class="pill lives">Lives: 3</span>
+      <div style="min-width:200px">
+        <div class="progress"><div id="progress-bar" class="bar"></div></div>
+      </div>
+      <button id="resetBtn" class="btn">Restart</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="menu" class="grid">
+    <div class="card center">
+      <h2>Choose Your Challenge</h2>
+      <p class="muted">Master the VP’s KPIs by diagnosing variance scenarios and picking the best actions. Earn points, advance levels, and become a KPI Commander.</p>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--budget)"></span>Budget</span>
+        <span><span class="dot" style="background:var(--fcst)"></span>Forecast</span>
+        <span><span class="dot" style="background:var(--pm)"></span>Prev Month</span>
+        <span><span class="dot" style="background:var(--py)"></span>Prev Year</span>
+        <span><span class="dot" style="background:var(--bench)"></span>Target/Internal</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:10px">
+        <button class="btn btn-primary" data-start="1">Level 1 · Operational</button>
+        <button class="btn btn-primary" data-start="2">Level 2 · Financial</button>
+        <button class="btn btn-primary" data-start="3">Level 3 · Sites & Working Capital</button>
+        <button class="btn btn-primary" data-start="4">Level 4 · Outlook</button>
+      </div>
+      <p style="color:var(--muted); max-width:700px">Rules: +10 for the best VP move, +6 for an acceptable move, −5 for a poor move. One attempt per question. Pass mark per level: 60%. You have 3 lives across a level.</p>
+    </div>
+  </section>
+
+  <section id="play" class="grid hidden">
+    <div class="card">
+      <div class="question">
+        <div class="kpi-head">
+          <div>
+            <div id="q-kpi" class="kpi-name">—</div>
+            <div id="q-tags" class="kpi-tags"></div>
+          </div>
+          <div id="q-variance" class="variance v-warn">—</div>
+        </div>
+        <div class="statline" id="q-stats"></div>
+        <div id="q-text" class="explain"></div>
+        <div class="answers" id="answers"></div>
+        <div id="explain" class="explain hidden"></div>
+        <div class="footer">
+          <button id="nextBtn" class="btn btn-primary hidden">Next</button>
+          <div class="right">
+            <span id="q-count" class="pill">Question 0/0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="result" class="grid hidden">
+    <div class="card center">
+      <h2 id="result-title">Level Complete!</h2>
+      <p id="result-summary"></p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:10px">
+        <button class="btn btn-primary" id="retryLevel">Retry Level</button>
+        <button class="btn" id="toMenu">Back to Menu</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden">Saved</div>
+
+<script>
+// --- Scenario Bank ---
+// Each scenario: {level, kpi, tags, baseline, stats:[{label,val,bg?}], variance:{text, cls}, prompt, options:[{text, score, feedback}], transcriptRule}
+const SCENARIOS = [
+  // Level 1: Operational
+  {level:1, kpi:'Volume of Hours', tags:['Operational','🔵 Budget','🟢 Forecast'], baseline:'Budget/Forecast',
+   stats:[{label:'Actual', val:'12,500 hours'},{label:'Budget', val:'11,800 hours', bg:'budget'},{label:'Forecast', val:'12,300 hours', bg:'fcst'}],
+   variance:{text:'+5.9% vs Budget', cls:'v-good'},
+   prompt:'Volume beats budget and forecast. What should you do as VP?',
+   options:[
+     {text:'Lock in higher billable work next month (convert pipeline) and monitor burnout risk.', score:10, feedback:'Best: Sustain throughput and protect capacity.'},
+     {text:'Reduce utilization targets next month to give teams a break.', score:6, feedback:'Okay: Care for teams, but pair with pipeline conversion.'},
+     {text:'Ignore; volume is operational, not financial.', score:-5, feedback:'Poor: Volume drives revenue. Don’t ignore.'}
+   ], transcriptRule:'Volume is operational; compare to Budget/Forecast.'},
+
+  {level:1, kpi:'ABC (Utilization %)', tags:['Operational','⚫ Target'], baseline:'Target',
+   stats:[{label:'Actual', val:'78%'},{label:'Target', val:'80%', bg:'bench'}],
+   variance:{text:'-2.5% vs Target', cls:'v-bad'},
+   prompt:'Utilization is under target. Best VP move?',
+   options:[
+     {text:'Rebalance staffing and accelerate cross-skilling to reduce idle time.', score:10, feedback:'Best: Fix structural capacity issues.'},
+     {text:'Cut SG&A immediately to raise EBITDA.', score:6, feedback:'Partial: SG&A isn’t the lever for utilization.'},
+     {text:'Bill more per piece to compensate.', score:-5, feedback:'Poor: Pricing != utilization root cause.'}
+   ], transcriptRule:'ABC is a utilization/target KPI.'},
+
+  {level:1, kpi:'Piece Pricing & Efficiency', tags:['Operational','⚫ Internal'], baseline:'Internal',
+   stats:[{label:'PPE Index', val:'1.05'},{label:'Hourly Baseline', val:'1.00', bg:'bench'}],
+   variance:{text:'+5% vs Hourly', cls:'v-good'},
+   prompt:'Per-piece jobs outperform hourly. What now?',
+   options:[
+     {text:'Increase piece-pricing share where quality is stable; codify best practices.', score:10, feedback:'Best: Scale what’s working with guardrails.'},
+     {text:'Switch all work to piece-pricing immediately.', score:6, feedback:'Risky: Not every scope suits per-piece.'},
+     {text:'Abandon hourly pricing entirely.', score:-5, feedback:'Poor: Diversify pricing models.'}
+   ], transcriptRule:'PPR/PPE benchmark against internal hourly model.'},
+
+  // Level 2: Financial
+  {level:2, kpi:'Billable Rate', tags:['Financial','🔵 Budget','🟢 Forecast','🟣 Prev Year'], baseline:'Budget/Forecast/Prev Year',
+   stats:[{label:'Actual', val:'$120/hr'},{label:'Budget', val:'$118/hr', bg:'budget'},{label:'Forecast', val:'$119/hr', bg:'fcst'},{label:'Prev Year (MTD)', val:'$115/hr', bg:'py'}],
+   variance:{text:'+1.7% vs Budget', cls:'v-good'},
+   prompt:'Rate is above budget and last year. Best VP action?',
+   options:[
+     {text:'Protect rate integrity; avoid discounting; segment customers for premium value.', score:10, feedback:'Best: Guard pricing power.'},
+     {text:'Lower rates to win volume.', score:6, feedback:'Trade-off: only if capacity is underused.'},
+     {text:'Focus only on OOE and ignore rates.', score:-5, feedback:'Poor: Pricing is a prime revenue lever.'}
+   ], transcriptRule:'Billable Rate compared to Budget/Forecast/Prev Year.'},
+
+  {level:2, kpi:'Other Operational Expenses (OOE)', tags:['Financial','🔵 Budget','🟢 Forecast','🟠 Prev Month'], baseline:'Budget/Forecast/Prev Month',
+   stats:[{label:'Actual', val:'$450k'},{label:'Budget', val:'$400k', bg:'budget'},{label:'Forecast', val:'$420k', bg:'fcst'},{label:'Prev Month', val:'$430k', bg:'pm'}],
+   variance:{text:'+12.5% vs Budget', cls:'v-bad'},
+   prompt:'OOE overshoot detected. What should you do first?',
+   options:[
+     {text:'Check if a new project kicked off; validate purchase orders against plan.', score:10, feedback:'Best: Compare MoM; confirm driver vs leakage.'},
+     {text:'Cut all consumables by 20% immediately.', score:6, feedback:'Blunt: May harm delivery if spend is justified.'},
+     {text:'Ignore; OOE isn’t material.', score:-5, feedback:'Poor: OOE affects GM and EBITDA.'}
+   ], transcriptRule:'OOE compared to Budget/Forecast and Prev Month; MoM check.'},
+
+  {level:2, kpi:'Gross Margin Rate', tags:['Financial','🔵 Budget','🟢 Forecast'], baseline:'Budget/Forecast',
+   stats:[{label:'Actual', val:'38.0%'},{label:'Budget', val:'40.0%', bg:'budget'},{label:'Forecast', val:'39.0%', bg:'fcst'}],
+   variance:{text:'-2.0 pts vs Budget', cls:'v-bad'},
+   prompt:'GM% under target. Best VP next step?',
+   options:[
+     {text:'Decompose GM: (rate × volume) – (direct labor + OOE); pinpoint leakage.', score:10, feedback:'Best: Diagnose the levers that moved.'},
+     {text:'Cut SG&A immediately.', score:6, feedback:'Helps EBITDA, but GM is above-the-line.'},
+     {text:'Increase DSO collections.', score:-5, feedback:'DSO affects cash, not GM% directly.'}
+   ], transcriptRule:'GM vs Budget/Forecast; driven by pricing, volume, direct labor, OOE.'},
+
+  {level:2, kpi:'Indirect Costs (SG&A)', tags:['Financial','🔵 Budget','🟢 Forecast','🟠 Prev Month'], baseline:'Budget/Forecast/Prev Month',
+   stats:[{label:'Actual', val:'$1.1M'},{label:'Budget', val:'$950k', bg:'budget'},{label:'Forecast', val:'$1.0M', bg:'fcst'},{label:'Prev Month', val:'$900k', bg:'pm'}],
+   variance:{text:'+15.8% vs Budget', cls:'v-bad'},
+   prompt:'SG&A spike. What’s the VP-quality response?',
+   options:[
+     {text:'Variance walk by category (headcount, wages, rent, events); separate one-offs from run-rate.', score:10, feedback:'Best: Explainable vs structural.'},
+     {text:'Freeze hiring everywhere.', score:6, feedback:'Broad lever; useful only if structural.'},
+     {text:'Compare to previous year mainly.', score:-5, feedback:'Per transcript, MoM and plan are more relevant.'}
+   ], transcriptRule:'SG&A: compare to Budget/Forecast/Prev Month; not primarily YoY.'},
+
+  {level:2, kpi:'EBITDA (Month & YTD)', tags:['Financial','🔵 Budget','🟢 Forecast','🟣 YTD Prev Year'], baseline:'Budget/Forecast/YTD Prev Year',
+   stats:[{label:'Month', val:'$1.30M'},{label:'Budget', val:'$1.35M', bg:'budget'},{label:'Forecast', val:'$1.32M', bg:'fcst'},{label:'YTD', val:'$8.70M'},{label:'YTD Budget', val:'$9.00M', bg:'budget'},{label:'YTD Prev Year', val:'$8.20M', bg:'py'}],
+   variance:{text:'-3.3% vs Mth Budget · -3.3% vs YTD Budget', cls:'v-bad'},
+   prompt:'EBITDA missing monthly and YTD. Your move?',
+   options:[
+     {text:'Bridge from GM and SG&A; address quick wins now; add 3-month corrective plan.', score:10, feedback:'Best: Tie to levers and outlook.'},
+     {text:'Focus only on DSO to improve cash.', score:6, feedback:'Cash helps, but EBITDA gap remains.'},
+     {text:'Shift revenue to next year.', score:-5, feedback:'Poor governance and value leakage.'}
+   ], transcriptRule:'EBITDA checked monthly and YTD vs Budget/Forecast and YTD Prev Year.'},
+
+  // Level 3: Sites & Working Capital
+  {level:3, kpi:'Gross Margin per Site', tags:['Site Performance','🔵 Budget','🟠 Prev Month','🟣 YTD Prev Year'], baseline:'Budget/Prev Month/YTD Prev Year',
+   stats:[{label:'Alpha GM%', val:'42.0%'},{label:'Budget', val:'40.0%', bg:'budget'},{label:'Prev Month', val:'41.0%', bg:'pm'},{label:'YTD Prev Year', val:'39.0%', bg:'py'}],
+   variance:{text:'+2.0 pts vs Budget', cls:'v-good'},
+   prompt:'Alpha is strong; Bravo underperforms (33% vs 36% budget). Best portfolio action?',
+   options:[
+     {text:'Transfer playbooks from Alpha; deep-dive Bravo’s rate/OOE/labor mix; set 30‑day actions.', score:10, feedback:'Best: Replicate success; fix leaks.'},
+     {text:'Reward Alpha; ignore Bravo for now.', score:6, feedback:'Partial: Opportunity cost at Bravo.'},
+     {text:'Close Bravo immediately.', score:-5, feedback:'Extreme without diagnosis.'}
+   ], transcriptRule:'Site page compares GM% across sites vs plan and MoM.'},
+
+  {level:3, kpi:'DSO (Days Sales Outstanding)', tags:['Working Capital','🔵 Budget','🟠 Prev Month','⚫ 90+ Aging'], baseline:'Budget/Prev Month/Internal',
+   stats:[{label:'Actual', val:'65 days'},{label:'Budget', val:'60 days', bg:'budget'},{label:'Prev Month', val:'68 days', bg:'pm'},{label:'90+ Aging', val:'15% of AR', bg:'bench'}],
+   variance:{text:'+5 days vs Budget', cls:'v-bad'},
+   prompt:'Collections lag; 15% of AR is >90 days. What do you do?',
+   options:[
+     {text:'Targeted collections on >90 day accounts; align incentives; escalate chronic offenders.', score:10, feedback:'Best: Attack the aging tail.'},
+     {text:'Increase prices to cover cash issues.', score:6, feedback:'May worsen collections; treat cause first.'},
+     {text:'Ignore: cash follows revenue anyway.', score:-5, feedback:'Poor: DSO is a key working-capital KPI.'}
+   ], transcriptRule:'DSO reviewed vs Budget/MoM; analyze >90 day clients.'},
+
+  {level:3, kpi:'Indirect Cost Breakdown', tags:['Financial Detail','🔵 Budget'], baseline:'Budget',
+   stats:[{label:'Headcount', val:'120 (Budget 110)', bg:'budget'},{label:'Wages', val:'$4.2M (Budget $3.9M)', bg:'budget'}],
+   variance:{text:'Over plan', cls:'v-bad'},
+   prompt:'Headcount and wages exceed budget. VP action?',
+   options:[
+     {text:'Triage: freeze non-critical roles, reassess span of control, validate contractor mix.', score:10, feedback:'Best: Structural controls with nuance.'},
+     {text:'Cut all teams by 10%.', score:6, feedback:'Blunt; risks capability loss.'},
+     {text:'Compare to last year primarily.', score:-5, feedback:'Transcript stresses budget vs forecast, not YoY.'}
+   ], transcriptRule:'Indirect breakdown to explain SG&A variances.'},
+
+  // Level 4: Outlook
+  {level:4, kpi:'Outlook (3 Months) — Revenue', tags:['Outlook','🔵 Budget','🟢 Forecast'], baseline:'Budget/Forecast',
+   stats:[{label:'Aug Revenue', val:'$4.00M (Bud $4.20M / Fcst $4.10M)', bg:'budget'},{label:'Sep Revenue', val:'$3.90M (Bud $4.10M / Fcst $4.05M)', bg:'fcst'},{label:'Oct Revenue', val:'$4.10M (Bud $4.20M / Fcst $4.15M)'}],
+   variance:{text:'Shortfall vs Budget', cls:'v-bad'},
+   prompt:'Near-term revenue trailing plan. Best VP move now?',
+   options:[
+     {text:'Deploy commercial sprint: accelerate pipeline conversion, upsell, and rate integrity; tie to capacity plan.', score:10, feedback:'Best: Close gaps before month-end.'},
+     {text:'Increase SG&A cuts to offset.', score:6, feedback:'Helps EBITDA but not revenue gap.'},
+     {text:'Wait for Q4 seasonality to fix it.', score:-5, feedback:'Passive; no guarantee.'}
+   ], transcriptRule:'Outlook tracks next 3 months vs Budget/Forecast.'},
+
+  {level:4, kpi:'Outlook (3 Months) — GM% & EBITDA', tags:['Outlook','🔵 Budget','🟢 Forecast'], baseline:'Budget/Forecast',
+   stats:[{label:'GM% (Aug–Oct)', val:'~38% vs 39% Budget'},{label:'EBITDA (Aug–Oct)', val:'$3.60M vs $3.70M Budget'}],
+   variance:{text:'Below Budget', cls:'v-bad'},
+   prompt:'GM% and EBITDA projected below plan. Best integrated response?',
+   options:[
+     {text:'Two-pronged: improve mix/price & fix cost leaks now; lock actions into next 3 closes.', score:10, feedback:'Best: Pull both revenue and cost levers with deadlines.'},
+     {text:'Only push collections.', score:6, feedback:'Cash helps, not P&L gap per se.'},
+     {text:'Delay investments to next year and hope.', score:-5, feedback:'Hope is not a plan.'}
+   ], transcriptRule:'Outlook page: revenue, GM%, EBITDA for next 3 months.'}
+];
+
+const LEVELS = [
+  { id:1, name:'Operational', questions: SCENARIOS.filter(s=>s.level===1) },
+  { id:2, name:'Financial', questions: SCENARIOS.filter(s=>s.level===2) },
+  { id:3, name:'Sites & Working Capital', questions: SCENARIOS.filter(s=>s.level===3) },
+  { id:4, name:'Outlook', questions: SCENARIOS.filter(s=>s.level===4) }
+];
+
+// --- State ---
+let state = { level: null, idx: 0, score: 0, lives: 3, answered:false };
+
+// --- Elements ---
+const $ = (id)=>document.getElementById(id);
+const menu = $('menu'), play = $('play'), result = $('result');
+const qKPI = $('q-kpi'), qTags = $('q-tags'), qVariance = $('q-variance'), qStats = $('q-stats'), qText=$('q-text');
+const answers = $('answers'), explain = $('explain'), qCount=$('q-count'), progress=$('progress-bar');
+const levelPill=$('level-pill'), scorePill=$('score-pill'), livesPill=$('lives-pill');
+
+// --- Utils ---
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function setView(which){ menu.classList.add('hidden'); play.classList.add('hidden'); result.classList.add('hidden'); $(which).classList.remove('hidden'); }
+function updateHUD(total){
+  levelPill.textContent = `Level: ${state.level.name}`;
+  scorePill.textContent = `Score: ${state.score}`;
+  livesPill.textContent = `Lives: ${state.lives}`;
+  qCount.textContent = `Question ${state.idx+1}/${total}`;
+  progress.style.width = `${((state.idx)/total)*100}%`;
+}
+
+function renderQuestion(){
+  const total = state.level.questions.length;
+  if(state.idx >= total){ return finishLevel(); }
+  const q = state.level.questions[state.idx];
+  updateHUD(total);
+  qKPI.textContent = q.kpi;
+  qTags.innerHTML = q.tags.map(t=>`<span class="pill">${t}</span>`).join(' ');
+  qVariance.className = `variance ${q.variance.cls}`;
+  qVariance.textContent = q.variance.text;
+  qStats.innerHTML = q.stats.map(s=>{
+    const chip = s.bg? `<span class="chip b-${s.bg}"><span class="dot"></span>${s.bg==='fcst'?'Forecast':s.bg==='py'?'Prev Year':s.bg==='pm'?'Prev Month':s.bg==='bench'?'Target':'Budget'}</span>` : '';
+    return `<div class="stat"><small>${s.label}</small><strong>${s.val}</strong>${chip?`<div style='margin-top:6px'>${chip}</div>`:''}</div>`;
+  }).join('');
+  qText.textContent = q.prompt;
+  answers.innerHTML = '';
+  explain.classList.add('hidden'); explain.textContent='';
+  $('nextBtn').classList.add('hidden');
+  state.answered=false;
+
+  const opts = shuffle(q.options.map((o,i)=>({ ...o, _i:i })));
+  for(const o of opts){
+    const btn = document.createElement('button');
+    btn.className = 'answer';
+    btn.innerHTML = `<div><strong>${o.text}</strong></div>`;
+    btn.addEventListener('click', ()=>selectAnswer(o, btn));
+    answers.appendChild(btn);
+  }
+}
+
+function selectAnswer(opt, btn){
+  if(state.answered) return; state.answered=true;
+  // score & feedback
+  state.score += opt.score;
+  scorePill.textContent = `Score: ${state.score}`;
+  if(opt.score < 0){ state.lives -= 1; livesPill.textContent = `Lives: ${state.lives}`; btn.classList.add('wrong'); }
+  else if(opt.score >= 10){ btn.classList.add('correct'); }
+  else { btn.classList.add('correct'); }
+
+  // freeze other answers
+  const all = answers.querySelectorAll('.answer'); all.forEach(a=>a.disabled=true);
+
+  // show explanation referencing transcript rule
+  const q = state.level.questions[state.idx];
+  explain.classList.remove('hidden');
+  explain.innerHTML = `<strong>Feedback:</strong> ${opt.feedback}<br/><span style='color:var(--muted)'>Transcript rule: ${q.transcriptRule}</span>`;
+
+  $('nextBtn').classList.remove('hidden');
+
+  // fail fast if no lives
+  if(state.lives <= 0){ finishLevel(); }
+}
+
+function nextQuestion(){ state.idx++; renderQuestion(); }
+
+function finishLevel(){
+  setView('result');
+  const total = state.level.questions.length;
+  const maxScore = total*10; // perfect
+  const pct = Math.max(0, Math.round((state.score/maxScore)*100));
+  $('result-title').textContent = `Level Complete — ${state.level.name}`;
+  $('result-summary').innerHTML = `You scored <strong>${state.score}</strong> / ${maxScore} (${pct}%). ${pct>=60? '✅ Pass! Next level unlocked.':'❌ Below 60%. Try again for mastery.'}`;
+  progress.style.width = '100%';
+  saveProgress(state.level.id, pct);
+}
+
+function saveProgress(levelId, pct){
+  try{
+    const key = 'vp-kpi-quiz-progress';
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data[levelId] = Math.max(pct, data[levelId]||0);
+    localStorage.setItem(key, JSON.stringify(data));
+    toast('Progress saved');
+  }catch(e){ /* ignore */ }
+}
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 1500); }
+
+function startLevel(id){
+  const lvl = LEVELS.find(l=>l.id===id);
+  state = { level:lvl, idx:0, score:0, lives:3, answered:false };
+  setView('play');
+  renderQuestion();
+}
+
+// --- Events ---
+Array.from(document.querySelectorAll('[data-start]')).forEach(b=>b.addEventListener('click', ()=>startLevel(parseInt(b.dataset.start))));
+$('nextBtn').addEventListener('click', nextQuestion);
+$('resetBtn').addEventListener('click', ()=>{ setView('menu'); state={level:null,idx:0,score:0,lives:3,answered:false}; scorePill.textContent='Score: 0'; livesPill.textContent='Lives: 3'; levelPill.textContent='Level: —'; progress.style.width='0%'; });
+$('retryLevel').addEventListener('click', ()=> startLevel(state.level.id));
+$('toMenu').addEventListener('click', ()=>{ setView('menu'); });
+
+// default view
+setView('menu');
+</script>
+</body>
+</html>
