@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VP KPI Dashboard</title>
+  <style>
+    :root{
+      --bg:#0f1522;         /* deep navy */
+      --panel:#131b2c;      /* card bg */
+      --ink:#e8eefc;        /* main text */
+      --muted:#a9b4d0;      /* secondary text */
+      --line:#22304d;       /* borders */
+      --chip:#1b2740;       /* chip bg */
+      --good:#2fa36d;       /* green */
+      --bad:#e05a5a;        /* red */
+      --ok:#e2b93b;         /* amber */
+      --cold:#5aa3ff;       /* budget */
+      --warm:#56d08b;       /* forecast */
+      --pm:#f2a65a;         /* prev month */
+      --py:#b18cff;         /* prev year */
+      --bench:#5d6b8c;      /* internal/target */
+      --pill-critical:#ff3b6b;
+      --pill-important:#ffb020;
+      --pill-nice:#7dd3fc;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,#0b1120,#0f1522 30%, #0d1323 100%);
+      color:var(--ink); font:500 16px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    }
+    .wrap{max-width:1280px; margin:0 auto; padding:28px 20px 80px}
+    header{position:sticky; top:0; z-index:5; backdrop-filter:saturate(140%) blur(10px); background:linear-gradient(180deg, rgba(13,19,35,.9), rgba(13,19,35,.65)); border-bottom:1px solid var(--line)}
+    header .wrap{display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; padding:14px 20px}
+    h1{margin:0; font-size:22px; letter-spacing:.2px}
+    .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .control{display:flex; gap:8px; align-items:center; background:var(--panel); border:1px solid var(--line); padding:8px 10px; border-radius:12px}
+    select, input[type="search"], button, .toggle{appearance:none; background:transparent; color:var(--ink); border:0; font:600 14px/1 ui-sans-serif}
+    select, input[type="search"]{padding:6px 6px; border-radius:8px; background:rgba(255,255,255,.04)}
+    input[type="search"]{min-width:200px}
+    .toggle{padding:6px 10px; border-radius:10px; cursor:pointer; border:1px solid var(--line); background:var(--chip)}
+    .toggle[aria-pressed="true"]{outline:2px solid #fff2; background:#fff1}
+    .legend{display:flex; gap:12px; align-items:center; color:var(--muted); font-size:12px}
+    .dot{width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px}
+
+    /* SECTION HEADERS */
+    .section{margin-top:28px}
+    .section h2{font-size:18px; font-weight:700; margin:0 0 12px; color:#dbe7ff}
+    .section small{color:var(--muted)}
+
+    /* GRID */
+    .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px}
+    .kpi{grid-column:span 6; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); position:relative}
+    @media (max-width:980px){ .kpi{grid-column:span 12;} }
+
+    /* KPI HEADER */
+    .kpi-head{display:flex; align-items:start; justify-content:space-between; gap:8px; margin-bottom:10px}
+    .name{font-weight:800; font-size:16px; letter-spacing:.2px}
+    .meta{display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px}
+    .badge{padding:4px 8px; border-radius:999px; border:1px solid var(--line); font-weight:800}
+    .critical{background:color-mix(in srgb, var(--pill-critical) 18%, transparent); color:#ffd8e1}
+    .important{background:color-mix(in srgb, var(--pill-important) 18%, transparent); color:#fff1cc}
+    .nice{background:color-mix(in srgb, var(--pill-nice) 20%, transparent); color:#e6f6ff}
+
+    /* KPI BODY */
+    .kpi-body{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+    .numbers{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .number{background:var(--chip); border:1px solid var(--line); padding:10px 12px; border-radius:12px; min-width:140px}
+    .number small{display:block; color:var(--muted); font-size:11px}
+    .number strong{display:block; font-size:18px}
+
+    .variance{padding:8px 10px; border-radius:999px; font-weight:900; font-size:13px; border:1px solid var(--line);}
+    .v-good{background:color-mix(in srgb, var(--good) 18%, transparent); color:#d8ffea}
+    .v-bad{background:color-mix(in srgb, var(--bad) 18%, transparent); color:#ffe6e6}
+    .v-ok{background:color-mix(in srgb, var(--ok) 18%, transparent); color:#fff6db}
+
+    .bench{display:flex; gap:6px; flex-wrap:wrap}
+    .chip{display:inline-flex; gap:6px; align-items:center; padding:6px 8px; border:1px solid var(--line); border-radius:999px; background:var(--chip); color:var(--ink); font-weight:700; font-size:12px}
+    .chip .dot{margin:0}
+    .b-budget .dot{background:var(--cold)}
+    .b-forecast .dot{background:var(--warm)}
+    .b-prevmonth .dot{background:var(--pm)}
+    .b-prevyear .dot{background:var(--py)}
+    .b-target .dot, .b-internal .dot{background:var(--bench)}
+
+    .desc{color:var(--muted); font-size:13px; margin-top:10px}
+    details{margin-top:6px}
+    details summary{cursor:pointer; color:#dbe7ff}
+
+    /* TABLE VIEW */
+    .table{width:100%; border-collapse:separate; border-spacing:0 10px}
+    .table th{color:#bcd0ff; text-align:left; font-size:12px; font-weight:800; padding:6px 8px}
+    .table td{background:var(--panel); border:1px solid var(--line); padding:10px 8px; font-size:14px}
+    .row{border-radius:12px}
+
+    .section.hidden{display:none}
+    .view-toggle{margin-left:4px}
+    .footer-note{margin-top:18px; color:var(--muted); font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>VP KPI Dashboard</h1>
+      <div class="controls">
+        <div class="control">
+          <label for="baseline">Comparison:</label>
+          <select id="baseline" title="Choose baseline to compare against">
+            <option value="budget">Budget</option>
+            <option value="forecast">Forecast</option>
+            <option value="prevMonth">Previous Month</option>
+            <option value="prevYear">Previous Year</option>
+            <option value="target">Target / Internal</option>
+            <option value="auto" selected>Auto (per KPI)</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="priority">Priority:</label>
+          <select id="priority">
+            <option value="all" selected>All</option>
+            <option value="Critical">Critical</option>
+            <option value="Important">Important</option>
+            <option value="Nice-to-have">Nice-to-have</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="category">Category:</label>
+          <select id="category">
+            <option value="all" selected>All</option>
+            <option value="Operational">Operational</option>
+            <option value="Financial">Financial</option>
+            <option value="Site Performance">Site Performance</option>
+            <option value="Working Capital">Working Capital</option>
+            <option value="Outlook">Outlook</option>
+          </select>
+        </div>
+        <div class="control"><input type="search" id="search" placeholder="Search KPI or description…" /></div>
+        <div class="control">
+          <label for="sort">Sort:</label>
+          <select id="sort">
+            <option value="prioSeq" selected>Priority → Sequence</option>
+            <option value="variance">Largest variance</option>
+            <option value="alpha">A → Z</option>
+          </select>
+        </div>
+        <button class="toggle view-toggle" id="toggleView" aria-pressed="false">Table View</button>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--cold)"></span>Budget</span>
+          <span><span class="dot" style="background:var(--warm)"></span>Forecast</span>
+          <span><span class="dot" style="background:var(--pm)"></span>Prev Month</span>
+          <span><span class="dot" style="background:var(--py)"></span>Prev Year</span>
+          <span><span class="dot" style="background:var(--bench)"></span>Target/Internal</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="sections"></div>
+    <p class="footer-note">Colors indicate variance vs. selected baseline. Favorable = green, Caution = amber, Unfavorable = red. Auto baseline follows the transcript’s guidance per KPI (e.g., Gross Margin vs Budget/Forecast; OOE vs Budget/Forecast/Prev Month; Billable Rate includes Prev Year, etc.).</p>
+  </main>
+
+  <script>
+  // ---------- Data Model (sample values aligned to the transcript) ----------
+  const KPIS = [
+    {
+      id: 'vol-hours',
+      name: 'Volume of Hours',
+      category: 'Operational',
+      priority: 'Critical', sequence: 1,
+      unit: 'hours', decimals: 0, higherIsBetter: true,
+      comparisons: ['budget','forecast'], defaultBaseline:'budget',
+      data: { actual: 12500, budget:11800, forecast:12300 },
+      definition: 'Total productive hours generated by inspectors, technicians, and engineers for the month.',
+      examples: 'July: 12,500 vs Budget 11,800.',
+      why: 'Operational throughput; foundational for revenue.'
+    },
+    {
+      id: 'bill-rate', name: 'Billable Rate', category:'Financial',
+      priority:'Critical', sequence:2,
+      unit:'$/hr', decimals:2, higherIsBetter:true,
+      comparisons:['budget','forecast','prevYear'], defaultBaseline:'budget',
+      data:{ actual:120, budget:118, forecast:119, prevYear:115 },
+      definition:'Average chargeable rate per productive hour.',
+      examples:'$120/hr vs $115/hr same month last year.',
+      why:'Direct revenue driver and pricing signal.'
+    },
+    {
+      id: 'ooe', name:'Other Operational Expenses (OOE)', category:'Financial',
+      priority:'Critical', sequence:3,
+      unit:'$', decimals:0, higherIsBetter:false,
+      comparisons:['budget','forecast','prevMonth'], defaultBaseline:'budget',
+      data:{ actual:450000, budget:400000, forecast:420000, prevMonth:430000 },
+      definition:'Non-labor operational expenses (consumables, rental, equipment).',
+      examples:'$450k vs $400k budget; check overshoot causes.',
+      why:'Controls cost creep above gross margin.'
+    },
+    {
+      id: 'gm-rate', name:'Gross Margin Rate', category:'Financial',
+      priority:'Critical', sequence:4,
+      unit:'%', decimals:1, higherIsBetter:true,
+      comparisons:['budget','forecast'], defaultBaseline:'budget',
+      data:{ actual:38.0, budget:40.0, forecast:39.0 },
+      definition:'Gross margin % after direct labor and OOE.',
+      examples:'38% vs 40% budget.',
+      why:'Core profitability efficiency indicator.'
+    },
+    {
+      id: 'sgna', name:'Indirect Costs (SG&A)', category:'Financial',
+      priority:'Critical', sequence:5,
+      unit:'$', decimals:0, higherIsBetter:false,
+      comparisons:['budget','forecast','prevMonth'], defaultBaseline:'budget',
+      data:{ actual:1100000, budget:950000, forecast:1000000, prevMonth:900000 },
+      definition:'Overheads incl. HR, Finance, Quality, office, marketing, legal/advisors.',
+      examples:'$1.1M vs $950k budget; spike may be events or rent.',
+      why:'Overhead discipline to protect EBITDA.'
+    },
+    {
+      id: 'ebitda', name:'EBITDA (Month & YTD)', category:'Financial',
+      priority:'Critical', sequence:6,
+      unit:'$', decimals:0, higherIsBetter:true,
+      comparisons:['budget','forecast','prevYear','ytdPrevYear'], defaultBaseline:'budget',
+      data:{ actual:1300000, budget:1350000, forecast:1320000, prevYear:1200000, ytdActual:8700000, ytdBudget:9000000, ytdPrevYear:8200000 },
+      definition:'Earnings before interest, taxes, depreciation, and amortization. Tracked monthly and YTD.',
+      examples:'July: $1.3M vs $1.35M budget; YTD $8.7M vs $9.0M budget.',
+      why:'Primary profitability KPI for business health.'
+    },
+    {
+      id: 'abc', name:'ABC (Utilization %)', category:'Operational',
+      priority:'Nice-to-have', sequence:7,
+      unit:'%', decimals:1, higherIsBetter:true,
+      comparisons:['target'], defaultBaseline:'target',
+      data:{ actual:78.0, target:80.0 },
+      definition:'Utilization of available working hours after leave/training.',
+      examples:'78% vs 80% target.',
+      why:'Workforce efficiency and capacity planning.'
+    },
+    {
+      id: 'ppr-ppe', name:'Piece Pricing & Efficiency', category:'Operational',
+      priority:'Nice-to-have', sequence:8,
+      unit:'idx', decimals:2, higherIsBetter:true,
+      comparisons:['internal'], defaultBaseline:'internal',
+      data:{ actual:1.05, internal:1.00 },
+      definition:'Efficiency index of per-piece pricing vs hourly billing.',
+      examples:'PPE 1.05 vs hourly baseline 1.00; PPR share 35%.',
+      why:'Benchmarks alternative pricing profitability.'
+    },
+    {
+      id: 'gm-site', name:'Gross Margin per Site', category:'Site Performance',
+      priority:'Important', sequence:9,
+      unit:'%', decimals:1, higherIsBetter:true,
+      comparisons:['budget','prevMonth','ytdPrevYear'], defaultBaseline:'budget',
+      data:{ sites:[
+        {site:'Alpha', actual:42.0, budget:40.0, prevMonth:41.0, ytdPrevYear:39.0},
+        {site:'Bravo', actual:33.0, budget:36.0, prevMonth:34.0, ytdPrevYear:35.0},
+        {site:'Charlie', actual:38.5, budget:38.0, prevMonth:37.0, ytdPrevYear:36.0}
+      ]},
+      definition:'Gross margin % by physical site/location.',
+      examples:'Alpha 42% (beat budget), Bravo 33% (under).',
+      why:'Pinpoints under/over-performing sites for action.'
+    },
+    {
+      id: 'dso', name:'DSO (Days Sales Outstanding)', category:'Working Capital',
+      priority:'Important', sequence:10,
+      unit:'days', decimals:0, higherIsBetter:false,
+      comparisons:['budget','prevMonth','internal'], defaultBaseline:'budget',
+      data:{ actual:65, budget:60, prevMonth:68, internal:90 },
+      definition:'Average days to collect receivables; proxy for cash conversion.',
+      examples:'65 days; 15% of clients >90 days.',
+      why:'Working capital efficiency and risk signal.'
+    },
+    {
+      id: 'sgna-breakdown', name:'Indirect Cost Breakdown', category:'Financial',
+      priority:'Important', sequence:11,
+      unit:'$', decimals:0, higherIsBetter:false,
+      comparisons:['budget'], defaultBaseline:'budget',
+      data:{ headcount:{ actual:120, budget:110 }, wages:{ actual:4200000, budget:3900000 } },
+      definition:'SG&A detail for headcount and wages vs budget.',
+      examples:'HC 120 vs 110; Wages $4.2M vs $3.9M.',
+      why:'Explains overhead variances and cost movements.'
+    },
+    {
+      id: 'outlook', name:'Outlook (Next 3 Months)', category:'Outlook',
+      priority:'Important', sequence:12,
+      unit:'$', decimals:0, higherIsBetter:true,
+      comparisons:['budget','forecast'], defaultBaseline:'forecast',
+      data:{ months:[
+        { m:'Aug', revenue:{ actual:4000000, budget:4200000, forecast:4100000 }, gmPct:{ actual:38, budget:39, forecast:38.5 }, ebitda:{ actual:1200000, budget:1250000, forecast:1220000 } },
+        { m:'Sep', revenue:{ actual:3900000, budget:4100000, forecast:4050000 }, gmPct:{ actual:37.5, budget:38.5, forecast:38 }, ebitda:{ actual:1180000, budget:1210000, forecast:1190000 } },
+        { m:'Oct', revenue:{ actual:4100000, budget:4200000, forecast:4150000 }, gmPct:{ actual:38.2, budget:39.0, forecast:38.6 }, ebitda:{ actual:1220000, budget:1240000, forecast:1230000 } }
+      ]},
+      definition:'Forward view for Revenue, GM%, EBITDA for 3 months vs budget/forecast.',
+      examples:'Aug–Oct revenue $12.0M vs $12.5M budget.',
+      why:'Short-term trajectory and corrective planning.'
+    }
+  ];
+
+  // Mapping for priority order
+  const PRIO_ORDER = { 'Critical': 0, 'Important': 1, 'Nice-to-have': 2 };
+
+  // Colors/labels for benchmark chips
+  const BENCH = {
+    budget: { label:'Budget', cls:'b-budget' },
+    forecast: { label:'Forecast', cls:'b-forecast' },
+    prevMonth: { label:'Prev Month', cls:'b-prevmonth' },
+    prevYear: { label:'Prev Year', cls:'b-prevyear' },
+    ytdPrevYear: { label:'YTD Prev Year', cls:'b-prevyear' },
+    target: { label:'Target', cls:'b-target' },
+    internal: { label:'Internal', cls:'b-internal' }
+  };
+
+  const state = {
+    baseline: 'auto',
+    priority: 'all',
+    category: 'all',
+    sort: 'prioSeq',
+    view: 'cards',
+    search: ''
+  };
+
+  const sectionsRoot = document.getElementById('sections');
+
+  function fmt(val, unit, decimals=0){
+    if(val === undefined || val === null) return '—';
+    const n = Number(val);
+    const fmtNum = (unit === '$')
+      ? `$${n.toLocaleString(undefined,{maximumFractionDigits:0})}`
+      : (unit === '%') ? `${n.toFixed(decimals)}%`
+      : (unit === 'days' || unit === 'hours') ? `${n.toLocaleString()}`
+      : (unit === '$/hr') ? `$${n.toFixed(decimals)}/hr`
+      : (unit === 'idx') ? n.toFixed(decimals)
+      : `${n.toLocaleString(undefined,{maximumFractionDigits:decimals})}`;
+    return fmtNum;
+  }
+
+  function pickBaseline(kpi){
+    if(state.baseline !== 'auto') return state.baseline;
+    return kpi.defaultBaseline || (kpi.comparisons?.[0] ?? 'budget');
+  }
+
+  function getComparatorValue(kpi, base){
+    if(!kpi || !base) return undefined;
+    const d = kpi.data || {};
+    if(kpi.id === 'gm-site'){ return undefined; }
+    if(kpi.id === 'outlook'){ return undefined; }
+    // prefer YTD fields if asking ytdPrevYear
+    if(base === 'ytdPrevYear') return d.ytdPrevYear;
+    return d[base];
+  }
+
+  function varianceInfo(kpi){
+    const baseKey = pickBaseline(kpi);
+    const actual = kpi.data?.actual;
+    const base = getComparatorValue(kpi, baseKey);
+    if(actual === undefined || base === undefined || base === 0) return { text:'—', cls:'v-ok', value:0 };
+    const delta = (actual - base);
+    const pct = delta / Math.abs(base); // signed
+    // Favorability depends on direction
+    const favorable = kpi.higherIsBetter ? pct >= 0 : pct <= 0;
+    const magnitude = Math.abs(pct);
+    const cls = magnitude < 0.01 ? 'v-ok' : (favorable ? 'v-good' : 'v-bad');
+    const text = `${delta>=0?'+':''}${(pct*100).toFixed(1)}%`;
+    return { text, cls, value: pct };
+  }
+
+  function kpiMatchesFilters(kpi){
+    if(state.priority !== 'all' && kpi.priority !== state.priority) return false;
+    if(state.category !== 'all' && kpi.category !== state.category) return false;
+    if(state.search){
+      const q = state.search.toLowerCase();
+      const inTxt = [kpi.name, kpi.category, kpi.definition, kpi.examples, kpi.why].join(' ').toLowerCase();
+      if(!inTxt.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function sortKpis(list){
+    if(state.sort === 'alpha'){
+      return list.sort((a,b)=>a.name.localeCompare(b.name));
+    }
+    if(state.sort === 'variance'){
+      return list.sort((a,b)=>Math.abs(varianceInfo(b).value) - Math.abs(varianceInfo(a).value));
+    }
+    // default: by priority then sequence
+    return list.sort((a,b)=>{
+      const d = PRIO_ORDER[a.priority] - PRIO_ORDER[b.priority];
+      if(d!==0) return d; return a.sequence - b.sequence;
+    });
+  }
+
+  function groupByCategory(kpis){
+    const groups = {};
+    for(const k of kpis){
+      if(!groups[k.category]) groups[k.category] = [];
+      groups[k.category].push(k);
+    }
+    return groups;
+  }
+
+  function chipHtml(key){
+    const m = BENCH[key]; if(!m) return '';
+    return `<span class="chip ${m.cls}"><span class="dot"></span>${m.label}</span>`
+  }
+
+  function renderNumberBlock(label, value, unit, decimals){
+    return `<div class="number"><small>${label}</small><strong>${fmt(value, unit, decimals)}</strong></div>`;
+  }
+
+  function renderCard(kpi){
+    const baseKey = pickBaseline(kpi);
+    const variance = varianceInfo(kpi);
+
+    // Header badges
+    const pr = kpi.priority === 'Critical' ? 'critical' : (kpi.priority==='Important'?'important':'nice');
+
+    let body = '';
+
+    // Generic KPIs with single actual/base
+    if(kpi.id !== 'gm-site' && kpi.id !== 'outlook' && kpi.id !== 'sgna-breakdown'){
+      const baseVal = getComparatorValue(kpi, baseKey);
+      body = `
+        <div class="kpi-body">
+          <div class="numbers">
+            ${renderNumberBlock('Actual', kpi.data?.actual, kpi.unit, kpi.decimals)}
+            ${renderNumberBlock(`Baseline: ${BENCH[baseKey]?.label ?? baseKey}`, baseVal, kpi.unit, kpi.decimals)}
+          </div>
+          <div class="variance ${variance.cls}" title="Variance vs ${BENCH[baseKey]?.label ?? baseKey}">${variance.text}</div>
+        </div>
+        <div class="bench">${(kpi.comparisons||[]).map(chipHtml).join('')}</div>
+        <div class="desc">
+          <div><strong>Definition:</strong> ${kpi.definition}</div>
+          <div><strong>Why it matters:</strong> ${kpi.why}</div>
+          <details><summary>Examples</summary><div style="margin-top:6px">${kpi.examples}</div></details>
+        </div>
+      `;
+    }
+
+    // SG&A breakdown card
+    if(kpi.id === 'sgna-breakdown'){
+      const hc = kpi.data.headcount; const wg = kpi.data.wages;
+      body = `
+        <div class="kpi-body">
+          <div class="numbers">
+            <div>${renderNumberBlock('Headcount (Actual)', hc.actual, '', 0)}${renderNumberBlock('Headcount (Budget)', hc.budget, '', 0)}</div>
+            <div>${renderNumberBlock('Wages (Actual)', wg.actual, '$', 0)}${renderNumberBlock('Wages (Budget)', wg.budget, '$', 0)}</div>
+          </div>
+          <div class="variance v-ok" title="See deltas in blocks">Detail</div>
+        </div>
+        <div class="bench">${chipHtml('budget')}</div>
+        <div class="desc"><div><strong>Definition:</strong> ${kpi.definition}</div><div><strong>Why it matters:</strong> ${kpi.why}</div><details><summary>Examples</summary><div style="margin-top:6px">${kpi.examples}</div></details></div>
+      `;
+    }
+
+    // GM per site table card
+    if(kpi.id === 'gm-site'){
+      const rows = (kpi.data.sites||[]).map(s=>{
+        const baseKey = pickBaseline(kpi);
+        const baseVal = s[baseKey];
+        const actual = s.actual;
+        const pct = (baseVal === undefined || baseVal === 0) ? 0 : (actual - baseVal)/Math.abs(baseVal);
+        const cls = Math.abs(pct) < 0.01 ? 'v-ok' : (pct >= 0 ? 'v-good' : 'v-bad');
+        const chip = `<span class="variance ${cls}">${pct>=0?'+':''}${(pct*100).toFixed(1)}%</span>`;
+        return `<tr>
+          <td>${s.site}</td>
+          <td>${fmt(actual, '%', 1)}</td>
+          <td>${fmt(baseVal, '%', 1)}</td>
+          <td>${chip}</td>
+        </tr>`;
+      }).join('');
+      body = `
+        <div class="kpi-body">
+          <div style="grid-column:1/-1; width:100%">
+            <table class="table">
+              <thead><tr><th>Site</th><th>GM%</th><th>Baseline (${BENCH[pickBaseline(kpi)]?.label ?? pickBaseline(kpi)})</th><th>Δ</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bench">${(kpi.comparisons||[]).map(chipHtml).join('')}</div>
+        <div class="desc"><div><strong>Definition:</strong> ${kpi.definition}</div><div><strong>Why it matters:</strong> ${kpi.why}</div><details><summary>Examples</summary><div style="margin-top:6px">${kpi.examples}</div></details></div>
+      `;
+    }
+
+    // Outlook 3 months card
+    if(kpi.id === 'outlook'){
+      const baseKey = pickBaseline(kpi) === 'prevMonth' ? 'forecast' : pickBaseline(kpi); // outlook prefers budget/forecast
+      const rows = (kpi.data.months||[]).map(m=>{
+        const revBase = m.revenue[baseKey];
+        const gmBase = m.gmPct[baseKey];
+        const eBase = m.ebitda[baseKey];
+        function chip(act, base, unit){
+          if(base===undefined || base===0) return '<span class="variance v-ok">—</span>';
+          const pct = (act - base)/Math.abs(base);
+          const favorable = (unit==='%'||unit==='$') ? (pct>=0) : (pct>=0);
+          const cls = Math.abs(pct) < .01 ? 'v-ok' : (favorable ? 'v-good' : 'v-bad');
+          return `<span class="variance ${cls}">${pct>=0?'+':''}${(pct*100).toFixed(1)}%</span>`
+        }
+        return `<tr>
+          <td><strong>${m.m}</strong></td>
+          <td>${fmt(m.revenue.actual,'$',0)}</td><td>${fmt(revBase,'$',0)}</td><td>${chip(m.revenue.actual,revBase,'$')}</td>
+          <td>${fmt(m.gmPct.actual,'% ',1)}</td><td>${fmt(gmBase,'% ',1)}</td><td>${chip(m.gmPct.actual,gmBase,'%')}</td>
+          <td>${fmt(m.ebitda.actual,'$',0)}</td><td>${fmt(eBase,'$',0)}</td><td>${chip(m.ebitda.actual,eBase,'$')}</td>
+        </tr>`
+      }).join('');
+
+      body = `
+        <div class="kpi-body">
+          <div style="grid-column:1/-1; width:100%">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Revenue</th><th>Baseline (${BENCH[baseKey]?.label ?? baseKey})</th><th>Δ</th>
+                  <th>GM%</th><th>Baseline</th><th>Δ</th>
+                  <th>EBITDA</th><th>Baseline</th><th>Δ</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bench">${chipHtml('budget')+chipHtml('forecast')}</div>
+        <div class="desc"><div><strong>Definition:</strong> ${kpi.definition}</div><div><strong>Why it matters:</strong> ${kpi.why}</div><details><summary>Examples</summary><div style="margin-top:6px">${kpi.examples}</div></details></div>
+      `;
+    }
+
+    return `
+      <article class="kpi" data-kpi="${kpi.id}">
+        <div class="kpi-head">
+          <div>
+            <div class="name">${kpi.name}</div>
+            <div class="meta">
+              <span class="badge ${pr}">${kpi.priority}</span>
+              <span class="badge">#${kpi.sequence}</span>
+              <span class="badge">${kpi.category}</span>
+            </div>
+          </div>
+          <div class="meta" title="Auto baseline follows transcript">
+            <span class="badge">Baseline: ${BENCH[pickBaseline(kpi)]?.label ?? pickBaseline(kpi)}</span>
+          </div>
+        </div>
+        ${body}
+      </article>
+    `;
+  }
+
+  function renderCards(groups){
+    sectionsRoot.innerHTML = '';
+    const orderedGroups = ['Operational','Financial','Site Performance','Working Capital','Outlook'];
+    for(const cat of orderedGroups){
+      const list = groups[cat];
+      if(!list || !list.length) continue;
+      const section = document.createElement('section');
+      section.className = 'section';
+      section.innerHTML = `<h2>${cat} <small>(${list.length})</small></h2><div class="grid">${list.map(renderCard).join('')}</div>`;
+      sectionsRoot.appendChild(section);
+    }
+  }
+
+  function renderTable(flat){
+    const rows = flat.map(k=>{
+      const baseKey = pickBaseline(k);
+      const v = (k.id==='gm-site'||k.id==='outlook'||k.id==='sgna-breakdown') ? '—' : varianceInfo(k).text;
+      const comps = (k.comparisons||[]).map(chipHtml).join('');
+      const actual = (k.id==='gm-site'||k.id==='outlook'||k.id==='sgna-breakdown') ? 'See card' : fmt(k.data?.actual, k.unit, k.decimals);
+      const baseVal = (k.id==='gm-site'||k.id==='outlook'||k.id==='sgna-breakdown') ? '—' : fmt(getComparatorValue(k, baseKey), k.unit, k.decimals);
+      return `<tr class="row">
+        <td>${k.priority}</td>
+        <td>#${k.sequence}</td>
+        <td><strong>${k.name}</strong><div style="color:var(--muted); font-size:12px">${k.category}</div></td>
+        <td>${actual}</td>
+        <td>${BENCH[baseKey]?.label ?? baseKey}: ${baseVal}</td>
+        <td>${v}</td>
+        <td>${comps}</td>
+        <td style="color:var(--muted)">${k.definition}</td>
+        <td style="color:var(--muted)">${k.why}</td>
+      </tr>`
+    }).join('');
+
+    sectionsRoot.innerHTML = `
+      <section class="section">
+        <h2>All KPIs (Table)</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Priority</th><th>Seq</th><th>KPI</th><th>Actual</th><th>Baseline</th><th>Δ</th><th>Compared Against</th><th>Definition</th><th>Why It Matters</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>
+    `;
+  }
+
+  function refresh(){
+    const filtered = KPIS.filter(kpiMatchesFilters);
+    const sorted = sortKpis([...filtered]);
+    if(state.view === 'cards'){
+      const groups = groupByCategory(sorted);
+      renderCards(groups);
+    } else {
+      renderTable(sorted);
+    }
+  }
+
+  // ---------- Wiring Controls ----------
+  document.getElementById('baseline').addEventListener('change', e=>{ state.baseline = e.target.value; refresh(); });
+  document.getElementById('priority').addEventListener('change', e=>{ state.priority = e.target.value; refresh(); });
+  document.getElementById('category').addEventListener('change', e=>{ state.category = e.target.value; refresh(); });
+  document.getElementById('sort').addEventListener('change', e=>{ state.sort = e.target.value; refresh(); });
+  document.getElementById('search').addEventListener('input', e=>{ state.search = e.target.value; refresh(); });
+  document.getElementById('toggleView').addEventListener('click', e=>{
+    state.view = state.view === 'cards' ? 'table' : 'cards';
+    e.currentTarget.setAttribute('aria-pressed', state.view==='table');
+    e.currentTarget.textContent = state.view==='table' ? 'Card View' : 'Table View';
+    refresh();
+  });
+
+  // Initial render
+  refresh();
+  </script>
+</body>
+</html>
