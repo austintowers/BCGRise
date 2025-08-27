@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KPI Hierarchy • VP Drill‑Down Map</title>
+  <style>
+    :root{
+      --bg:#0f1522; --panel:#131b2c; --ink:#e8eefc; --muted:#a9b4d0; --line:#22304d; --chip:#1b2740;
+      --good:#2fa36d; --bad:#e05a5a; --ok:#e2b93b;
+      --budget:#5aa3ff; --forecast:#56d08b; --pm:#f2a65a; --py:#b18cff; --bench:#5d6b8c;
+      --pill-critical:#ff3b6b; --pill-important:#ffb020; --pill-nice:#7dd3fc;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1120,#0f1522 30%,#0d1323 100%);color:var(--ink);font:500 15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{position:sticky;top:0;z-index:5;background:rgba(13,19,35,.85);backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--line)}
+    header .wrap{max-width:1280px;margin:0 auto;padding:14px 18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+    h1{margin:0;font-size:20px;letter-spacing:.2px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .control{display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);padding:8px 10px;border-radius:12px}
+    select,button{appearance:none;background:transparent;color:var(--ink);border:0;font:600 14px/1 ui-sans-serif}
+    select{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.05)}
+    button{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--chip);cursor:pointer}
+
+    main{max-width:1280px;margin:0 auto;padding:18px}
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:16px}
+    @media (max-width:1000px){.layout{grid-template-columns:1fr}}
+
+    /* TREE */
+    .tree{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);max-height:76vh;overflow:auto}
+    .tree h2{margin:2px 8px 8px;font-size:15px;color:#dbe7ff}
+    .tree ul{list-style:none;margin:0;padding:0}
+    .node{margin:2px 0}
+    .node-label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--chip);cursor:pointer}
+    .node-label:hover{background:#22304d}
+    .toggle{width:16px;height:16px;border:1px solid var(--line);border-radius:4px;background:#0f1a33;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px}
+    .children{margin-left:18px;border-left:1px dashed var(--line);padding-left:12px;margin-top:6px}
+    .badge{padding:2px 6px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:800}
+    .critical{background:color-mix(in srgb, var(--pill-critical) 18%, transparent);color:#ffd8e1}
+    .important{background:color-mix(in srgb, var(--pill-important) 18%, transparent);color:#fff1cc}
+    .nice{background:color-mix(in srgb, var(--pill-nice) 20%, transparent);color:#e6f6ff}
+    .kpi-chip{font-size:10px;padding:2px 6px;border-radius:999px;background:#2b3758;color:#cfe0ff;border:1px solid var(--line)}
+
+    /* DETAILS */
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+    .panel h2{margin:0 0 6px;font-size:18px}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-bottom:8px}
+    .bench{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+    .chip{display:inline-flex;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:999px;background:var(--chip);color:var(--ink);font-weight:700;font-size:12px}
+    .chip .dot{width:10px;height:10px;border-radius:50%}
+    .b-budget .dot{background:var(--budget)}
+    .b-forecast .dot{background:var(--forecast)}
+    .b-prevMonth .dot{background:var(--pm)}
+    .b-prevYear .dot{background:var(--py)}
+    .b-target .dot,.b-internal .dot{background:var(--bench)}
+
+    .numbers{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    .number{background:var(--chip);border:1px solid var(--line);padding:10px 12px;border-radius:12px;min-width:150px}
+    .number small{display:block;color:var(--muted);font-size:11px}
+    .number strong{display:block;font-size:18px}
+    .variance{padding:8px 10px;border-radius:999px;font-weight:900;font-size:13px;border:1px solid var(--line)}
+    .v-good{background:color-mix(in srgb, var(--good) 18%, transparent);color:#d8ffea}
+    .v-bad{background:color-mix(in srgb, var(--bad) 18%, transparent);color:#ffe6e6}
+    .v-ok{background:color-mix(in srgb, var(--ok) 18%, transparent);color:#fff6db}
+
+    .drivers{margin-top:10px}
+    .drivers h3{margin:6px 0 6px;font-size:14px;color:#dbe7ff}
+    .driver-pill{display:inline-flex;gap:6px;align-items:center;padding:6px 8px;border:1px dashed var(--line);border-radius:999px;background:#0f1a33;margin:4px 6px 0 0;font-size:12px}
+
+    .footer-note{margin-top:10px;color:var(--muted);font-size:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th{color:#bcd0ff;text-align:left;font-size:12px;padding:6px 8px}
+    td{background:var(--chip);border:1px solid var(--line);padding:8px;border-radius:10px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>KPI Hierarchy & Drivers</h1>
+      <div class="controls">
+        <div class="control"><label for="baseline">Baseline:</label>
+          <select id="baseline">
+            <option value="auto" selected>Auto (per KPI)</option>
+            <option value="budget">Budget</option>
+            <option value="forecast">Forecast</option>
+            <option value="prevMonth">Previous Month</option>
+            <option value="prevYear">Previous Year</option>
+            <option value="target">Target / Internal</option>
+          </select>
+        </div>
+        <div class="control"><button id="expandAll">Expand All</button><button id="collapseAll">Collapse All</button></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="layout">
+      <aside class="tree">
+        <h2>Relationship Tree</h2>
+        <div id="treeRoot"></div>
+      </aside>
+      <section class="panel" id="detail">
+        <h2>Welcome</h2>
+        <p>Select any KPI or driver in the tree to see its definition, comparisons, variance (sample), and upstream/downstream links.</p>
+      </section>
+    </div>
+    <p class="footer-note">Flow shows causal links: <em>Volume × Billable Rate (+ Piece Pricing)</em> ⇒ Revenue ⇒ Gross Margin ⇒ <strong>EBITDA</strong>. Direct labor (via Utilization) & OOE affect GM; SG&A affects EBITDA. DSO impacts cash (not EBITDA). Outlook projects next 3 months.</p>
+  </main>
+
+  <script>
+    // === KPI CATALOG (sample numbers) ===
+    const KPIS = {
+      volume:{ id:'volume', name:'Volume of Hours', type:'kpi', category:'Operational', priority:'Critical', sequence:1, unit:'hours', decimals:0, higherIsBetter:true, comparisons:['budget','forecast'], defaultBaseline:'budget', data:{ actual:12500, budget:11800, forecast:12300 }, definition:'Total productive hours generated by inspectors, technicians, and engineers for the month.', why:'Operational throughput; foundational for revenue.' },
+      rate:{ id:'rate', name:'Billable Rate', type:'kpi', category:'Financial', priority:'Critical', sequence:2, unit:'$/hr', decimals:2, higherIsBetter:true, comparisons:['budget','forecast','prevYear'], defaultBaseline:'budget', data:{ actual:120, budget:118, forecast:119, prevYear:115 }, definition:'Average chargeable rate per productive hour.', why:'Direct revenue driver and pricing signal.' },
+      ppe:{ id:'ppe', name:'Piece Pricing & Efficiency (PPR, PPE)', type:'kpi', category:'Operational', priority:'Nice-to-have', sequence:8, unit:'idx', decimals:2, higherIsBetter:true, comparisons:['internal'], defaultBaseline:'internal', data:{ actual:1.05, internal:1.00 }, definition:'Efficiency index of per-piece pricing vs hourly billing.', why:'Benchmarks alternative pricing profitability.' },
+      abc:{ id:'abc', name:'ABC (Utilization %)', type:'kpi', category:'Operational', priority:'Nice-to-have', sequence:7, unit:'%', decimals:1, higherIsBetter:true, comparisons:['target'], defaultBaseline:'target', data:{ actual:78.0, target:80.0 }, definition:'Utilization of available working hours after leave/training.', why:'Workforce efficiency and capacity planning.' },
+      ooe:{ id:'ooe', name:'Other Operational Expenses (OOE)', type:'kpi', category:'Financial', priority:'Critical', sequence:3, unit:'$', decimals:0, higherIsBetter:false, comparisons:['budget','forecast','prevMonth'], defaultBaseline:'budget', data:{ actual:450000, budget:400000, forecast:420000, prevMonth:430000 }, definition:'Non-labor operational expenses (consumables, rental, equipment).', why:'Controls cost creep above gross margin.' },
+      gmr:{ id:'gmr', name:'Gross Margin & Gross Margin Rate', type:'kpi', category:'Financial', priority:'Critical', sequence:4, unit:'%', decimals:1, higherIsBetter:true, comparisons:['budget','forecast'], defaultBaseline:'budget', data:{ actual:38.0, budget:40.0, forecast:39.0 }, definition:'Gross margin $ and % after direct labor and OOE.', why:'Core profitability efficiency indicator.' },
+      sgna:{ id:'sgna', name:'Indirect Costs (SG&A)', type:'kpi', category:'Financial', priority:'Critical', sequence:5, unit:'$', decimals:0, higherIsBetter:false, comparisons:['budget','forecast','prevMonth'], defaultBaseline:'budget', data:{ actual:1100000, budget:950000, forecast:1000000, prevMonth:900000 }, definition:'Overheads incl. HR, Finance, Quality, office, marketing, legal/advisors.', why:'Overhead discipline to protect EBITDA.' },
+      ebitda:{ id:'ebitda', name:'EBITDA (Monthly & YTD)', type:'kpi', category:'Financial', priority:'Critical', sequence:6, unit:'$', decimals:0, higherIsBetter:true, comparisons:['budget','forecast','prevYear','ytdPrevYear'], defaultBaseline:'budget', data:{ actual:1300000, budget:1350000, forecast:1320000, prevYear:1200000, ytdActual:8700000, ytdBudget:9000000, ytdPrevYear:8200000 }, definition:'Earnings before interest, taxes, depreciation, and amortization. Tracked monthly and YTD.', why:'Primary profitability KPI for business health.' },
+      gmSite:{ id:'gmSite', name:'Gross Margin per Site', type:'kpi', category:'Site Performance', priority:'Important', sequence:9, unit:'%', decimals:1, higherIsBetter:true, comparisons:['budget','prevMonth','ytdPrevYear'], defaultBaseline:'budget', data:{ sites:[ {site:'Alpha', actual:42.0, budget:40.0, prevMonth:41.0, ytdPrevYear:39.0}, {site:'Bravo', actual:33.0, budget:36.0, prevMonth:34.0, ytdPrevYear:35.0}, {site:'Charlie', actual:38.5, budget:38.0, prevMonth:37.0, ytdPrevYear:36.0} ] }, definition:'Gross margin % by physical site/location.', why:'Pinpoints under/over-performing sites for action.' },
+      dso:{ id:'dso', name:'DSO (Days Sales Outstanding)', type:'kpi', category:'Working Capital', priority:'Important', sequence:10, unit:'days', decimals:0, higherIsBetter:false, comparisons:['budget','prevMonth','internal'], defaultBaseline:'budget', data:{ actual:65, budget:60, prevMonth:68, internal:90 }, definition:'Average days to collect receivables; proxy for cash conversion.', why:'Working capital efficiency and risk signal.' },
+      sgnaBreak:{ id:'sgnaBreak', name:'Indirect Cost Breakdown (Headcount, Wages)', type:'kpi', category:'Financial', priority:'Important', sequence:11, unit:'$', decimals:0, higherIsBetter:false, comparisons:['budget'], defaultBaseline:'budget', data:{ headcount:{ actual:120, budget:110 }, wages:{ actual:4200000, budget:3900000 } }, definition:'SG&A detail for headcount and wages vs budget.', why:'Explains overhead variances and cost movements.' },
+      outlook:{ id:'outlook', name:'Outlook (Next 3 Months: Revenue, GM%, EBITDA)', type:'kpi', category:'Outlook', priority:'Important', sequence:12, unit:'$', decimals:0, higherIsBetter:true, comparisons:['budget','forecast'], defaultBaseline:'forecast', data:{ months:[ { m:'Aug', revenue:{ actual:4000000, budget:4200000, forecast:4100000 }, gmPct:{ actual:38, budget:39, forecast:38.5 }, ebitda:{ actual:1200000, budget:1250000, forecast:1220000 } }, { m:'Sep', revenue:{ actual:3900000, budget:4100000, forecast:4050000 }, gmPct:{ actual:37.5, budget:38.5, forecast:38 }, ebitda:{ actual:1180000, budget:1210000, forecast:1190000 } }, { m:'Oct', revenue:{ actual:4100000, budget:4200000, forecast:4150000 }, gmPct:{ actual:38.2, budget:39.0, forecast:38.6 }, ebitda:{ actual:1220000, budget:1240000, forecast:1230000 } } ] }, definition:'Forward view for Revenue, GM%, EBITDA for 3 months vs budget/forecast.', why:'Short-term trajectory and corrective planning.' },
+    };
+
+    // === HIERARCHY (drivers → outcomes) ===
+    const TREE = {
+      id:'root', name:'Business Performance', type:'group', children:[
+        { ...KPIS.ebitda, children:[
+          { ...KPIS.gmr, children:[
+            { id:'revenue', name:'Revenue (derived)', type:'driver', definition:'Revenue ≈ Volume of Hours × Billable Rate (+ Piece Pricing share).', children:[ KPIS.volume, KPIS.rate, KPIS.ppe ] },
+            { id:'directLabor', name:'Direct Labor Cost (driver)', type:'driver', definition:'Cost of direct staff; impacted by utilization, overtime, mix.', children:[ KPIS.abc ] },
+            KPIS.ooe,
+          ]},
+          KPIS.sgna,
+          KPIS.sgnaBreak,
+        ]},
+        { id:'sitePerf', name:'Site Performance', type:'group', children:[ KPIS.gmSite ] },
+        { id:'workingCap', name:'Working Capital', type:'group', children:[ KPIS.dso ] },
+        { id:'forward', name:'Forward Outlook', type:'group', children:[ KPIS.outlook ] },
+      ]
+    };
+
+    // === STATE & HELPERS ===
+    const BENCH = { budget:{label:'Budget', cls:'b-budget'}, forecast:{label:'Forecast', cls:'b-forecast'}, prevMonth:{label:'Prev Month', cls:'b-prevMonth'}, prevYear:{label:'Prev Year', cls:'b-prevYear'}, ytdPrevYear:{label:'YTD Prev Year', cls:'b-prevYear'}, target:{label:'Target', cls:'b-target'}, internal:{label:'Internal', cls:'b-internal'} };
+    const PRIO_CLASS = p=> p==='Critical'?'critical':(p==='Important'?'important':'nice');
+    const state = { baseline:'auto', expanded:new Set(['root']) };
+
+    const treeRoot = document.getElementById('treeRoot');
+    const detail = document.getElementById('detail');
+
+    function fmt(val, unit, decimals=0){
+      if(val===undefined||val===null) return '—';
+      const n = Number(val);
+      if(unit==='$/hr') return `$${n.toFixed(decimals)}/hr`;
+      if(unit==='$') return `$${n.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+      if(unit==='%') return `${n.toFixed(decimals)}%`;
+      if(unit==='hours' || unit==='days') return `${n.toLocaleString()}`;
+      if(unit==='idx') return n.toFixed(decimals);
+      return n.toLocaleString(undefined,{maximumFractionDigits:decimals});
+    }
+
+    function pickBaseline(node){
+      if(state.baseline!=='auto') return state.baseline;
+      return node.defaultBaseline || (node.comparisons?.[0] ?? 'budget');
+    }
+
+    function comparatorValue(node, key){
+      if(!node || !key) return undefined; const d=node.data||{};
+      if(node.id==='gmSite'||node.id==='outlook'||node.id==='sgnaBreak') return undefined;
+      if(key==='ytdPrevYear') return d.ytdPrevYear;
+      return d[key];
+    }
+
+    function variance(node){
+      if(node.type!=='kpi') return {text:'—',cls:'v-ok',value:0};
+      if(node.id==='gmSite'||node.id==='outlook'||node.id==='sgnaBreak') return {text:'—',cls:'v-ok',value:0};
+      const baseKey = pickBaseline(node);
+      const a = node.data?.actual; const b = comparatorValue(node, baseKey);
+      if(a===undefined || b===undefined || b===0) return {text:'—',cls:'v-ok',value:0};
+      const pct = (a-b)/Math.abs(b);
+      const favorable = node.higherIsBetter ? pct>=0 : pct<=0;
+      const cls = Math.abs(pct)<0.01 ? 'v-ok' : (favorable?'v-good':'v-bad');
+      return {text:`${pct>=0?'+':''}${(pct*100).toFixed(1)}%`, cls, value:pct};
+    }
+
+    function chips(keys){ return (keys||[]).map(k=>`<span class="chip ${BENCH[k]?.cls||''}"><span class="dot"></span>${BENCH[k]?.label||k}</span>`).join(''); }
+
+    function kpiDetail(node){
+      const baseKey = pickBaseline(node);
+      const v = variance(node);
+      let body = '';
+
+      if(node.id==='gmSite'){
+        const rows = (node.data.sites||[]).map(s=>{
+          const baseVal = s[baseKey]; const actual = s.actual;
+          const pct = (baseVal? (actual-baseVal)/Math.abs(baseVal) : 0);
+          const cls = Math.abs(pct)<.01 ? 'v-ok' : (pct>=0?'v-good':'v-bad');
+          return `<tr><td>${s.site}</td><td>${fmt(actual,'% ',1)}</td><td>${fmt(baseVal,'% ',1)}</td><td><span class="variance ${cls}">${pct>=0?'+':''}${(pct*100).toFixed(1)}%</span></td></tr>`;
+        }).join('');
+        body = `<table><thead><tr><th>Site</th><th>GM%</th><th>Baseline (${BENCH[baseKey]?.label||baseKey})</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
+      else if(node.id==='outlook'){
+        const b = baseKey==='prevMonth' ? 'forecast' : baseKey; // prefer budget/forecast for outlook
+        const rows = (node.data.months||[]).map(m=>{
+          function chip(act, base, unit){
+            if(!base) return '<span class="variance v-ok">—</span>';
+            const pct = (act-base)/Math.abs(base);
+            const cls = Math.abs(pct)<.01 ? 'v-ok' : (pct>=0?'v-good':'v-bad');
+            return `<span class="variance ${cls}">${pct>=0?'+':''}${(pct*100).toFixed(1)}%</span>`;
+          }
+          return `<tr>
+            <td><strong>${m.m}</strong></td>
+            <td>${fmt(m.revenue.actual,'$',0)}</td><td>${fmt(m.revenue[b],'$',0)}</td><td>${chip(m.revenue.actual,m.revenue[b],'$')}</td>
+            <td>${fmt(m.gmPct.actual,'% ',1)}</td><td>${fmt(m.gmPct[b],'% ',1)}</td><td>${chip(m.gmPct.actual,m.gmPct[b],'%')}</td>
+            <td>${fmt(m.ebitda.actual,'$',0)}</td><td>${fmt(m.ebitda[b],'$',0)}</td><td>${chip(m.ebitda.actual,m.ebitda[b],'$')}</td>
+          </tr>`;
+        }).join('');
+        body = `<table><thead><tr><th>Month</th><th>Revenue</th><th>Baseline (${BENCH[b]?.label||b})</th><th>Δ</th><th>GM%</th><th>Baseline</th><th>Δ</th><th>EBITDA</th><th>Baseline</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
+      else if(node.id==='sgnaBreak'){
+        const hc = node.data.headcount, wg = node.data.wages;
+        body = `<div class="numbers">
+          <div class="number"><small>Headcount (Actual)</small><strong>${fmt(hc.actual,'',0)}</strong></div>
+          <div class="number"><small>Headcount (Budget)</small><strong>${fmt(hc.budget,'',0)}</strong></div>
+          <div class="number"><small>Wages (Actual)</small><strong>${fmt(wg.actual,'$',0)}</strong></div>
+          <div class="number"><small>Wages (Budget)</small><strong>${fmt(wg.budget,'$',0)}</strong></div>
+        </div>`;
+      }
+      else{ // generic KPI
+        const baseVal = comparatorValue(node, baseKey);
+        body = `<div class="numbers">
+          <div class="number"><small>Actual</small><strong>${fmt(node.data.actual,node.unit,node.decimals)}</strong></div>
+          <div class="number"><small>Baseline: ${BENCH[baseKey]?.label||baseKey}</small><strong>${fmt(baseVal,node.unit,node.decimals)}</strong></div>
+          <div class="number"><small>Variance</small><strong><span class="variance ${v.cls}">${v.text}</span></strong></div>
+        </div>`;
+      }
+
+      return `
+        <h2>${node.name}</h2>
+        <div class="meta">
+          ${node.priority?`<span class="badge ${PRIO_CLASS(node.priority)}">${node.priority}</span>`:''}
+          ${node.category?`<span class="badge">${node.category}</span>`:''}
+          ${node.sequence?`<span class="badge">#${node.sequence}</span>`:''}
+          <span class="badge">Baseline: ${BENCH[pickBaseline(node)]?.label||pickBaseline(node)}</span>
+        </div>
+        ${body}
+        <div class="bench">${chips(node.comparisons)}</div>
+        <div class="drivers">
+          <h3>Definition</h3>
+          <p style="color:var(--muted)">${node.definition||'—'}</p>
+          ${node.why?`<h3>Why it matters</h3><p style="color:var(--muted)">${node.why}</p>`:''}
+          ${driverHints(node)}
+        </div>
+      `;
+    }
+
+    function driverHints(node){
+      // contextual driver pills
+      const map = {
+        volume:['Volume/Demand','Staffing','Scheduling','Pipeline'],
+        rate:['Price/Rate','Discounting','Client Mix','Contract Terms'],
+        ppe:['Pricing Model','Throughput','Rework/Quality'],
+        abc:['Utilization/Capacity','Leave/Training','Overtime'],
+        ooe:['Consumables','Rent/Logistics','Project Ramp','One‑off/Event'],
+        gmr:['Price vs Cost','Mix','Efficiency'],
+        sgna:['Headcount','Wages','Marketing/Legal','Rent'],
+        ebitda:['GM','SG&A','Scale Effects'],
+        dso:['Collections','>90 Day Aging','Credit Policy','Billing Timeliness'],
+        gmSite:['Local Mix','Productivity','Pricing','Utilization'],
+        outlook:['Bookings/Pipeline','Capacity','Pricing','Cost Trajectory']
+      };
+      const tags = map[node.id]||[];
+      if(!tags.length) return '';
+      return `<h3>Underlying Drivers</h3><div>${tags.map(t=>`<span class="driver-pill">${t}</span>`).join('')}</div>`;
+    }
+
+    function renderDetail(node){
+      detail.innerHTML = (node.type==='kpi' ? kpiDetail(node) : `
+        <h2>${node.name}</h2>
+        <p style="color:var(--muted)">${node.definition||'Select a KPI on the left to drill down.'}</p>
+      `);
+    }
+
+    // ==== TREE RENDER ====
+    function nodeRow(n){
+      const hasKids = (n.children && n.children.length);
+      const open = state.expanded.has(n.id);
+      const pr = n.priority? `<span class="badge ${PRIO_CLASS(n.priority)}">${n.priority}</span>`: '';
+      const chip = n.type==='kpi'? `<span class="kpi-chip">#${n.sequence||'—'}</span>`:'';
+      return `
+        <li class="node" data-id="${n.id}">
+          <div class="node-label" onclick="selectNode('${n.id}')">
+            ${hasKids?`<span class="toggle" onclick="toggleNode(event,'${n.id}')">${open? '−':'+'}</span>`:`<span style="width:16px"></span>`}
+            <strong>${n.name}</strong>
+            ${pr}${chip}
+          </div>
+          ${hasKids? `<div class="children" style="display:${open?'block':'none'}">${childList(n.children)}</div>`: ''}
+        </li>`;
+    }
+
+    function childList(children){
+      return `<ul>${children.map(c=>nodeRow(c)).join('')}</ul>`;
+    }
+
+    function renderTree(){
+      treeRoot.innerHTML = childList([TREE]);
+    }
+
+    // ==== INTERACTION ====
+    window.toggleNode = (e,id)=>{ e.stopPropagation(); if(state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id); renderTree(); };
+    window.selectNode = (id)=>{
+      function find(n){ if(n.id===id) return n; if(n.children){ for(const c of n.children){ const r=find(c); if(r) return r; } } return null; }
+      const node = find(TREE);
+      if(node) renderDetail(node);
+    };
+
+    document.getElementById('baseline').addEventListener('change', e=>{ state.baseline = e.target.value; const cur = detail.querySelector('h2')?.textContent; renderTree(); });
+    document.getElementById('expandAll').addEventListener('click', ()=>{ state.expanded = collectIds(TREE); renderTree(); });
+    document.getElementById('collapseAll').addEventListener('click', ()=>{ state.expanded = new Set(['root']); renderTree(); });
+
+    function collectIds(n, set=new Set()){ set.add(n.id); (n.children||[]).forEach(c=>collectIds(c,set)); return set; }
+
+    // initial
+    renderTree();
+  </script>
+</body>
+</html>
