@@ -11,6 +11,11 @@
     <!-- React 18 UMD -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script>
+  // expose React hooks as globals
+  const useState = React.useState;
+  const useEffect = React.useEffect;
+</script>
 
     <!-- Firebase compat UMD -->
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
