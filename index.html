@@ -5,63 +5,49 @@
     <title>Transcript Analyzer</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-    <!-- Tailwind (for your utility classes) -->
+    <!-- Tailwind (optional) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React 18 UMD globals -->
+    <!-- React 18 UMD -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 
-    <!-- Firebase compat UMD (so we can use globals without imports) -->
+    <!-- Firebase compat UMD -->
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 
-    <!-- Babel (transpile JSX in the browser) -->
-    <script src="https://unpkg.com/@babel/standalone@7.25.7/babel.min.js"></script>
+    <!-- Babel (JSX in browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Optional: define your runtime vars so the app doesn't crash when it tries to read them -->
+    <!-- Globals your JSX expects -->
     <script>
-      // Replace with your real Firebase config to avoid init errors.
-      // Keeping empty values will trigger the app's error banner (safe for demo).
-      window.__firebase_config = JSON.stringify({
-        apiKey: "",
-        authDomain: "",
-        projectId: "",
-        appId: ""
+      /* Define as real globals (not just window.*) so your JSX can read them directly */
+      var __firebase_config = JSON.stringify({
+        apiKey: "", authDomain: "", projectId: "", appId: ""
       });
-      window.__initial_auth_token = null;   // or your custom token string
-      window.__app_id = "transcript-analyzer-demo";
-      
-      // Map compat SDK to the names your JSX expects if you kept references:
-      // In your JSX you call initializeApp/getAuth/onAuthStateChanged/etc.
-      // Using compat, these are available as firebase.initializeApp(...) etc.
-      // To keep your JSX working as-is, we expose shims:
+      var __initial_auth_token = null;
+      var __app_id = "transcript-analyzer-demo";
+
+      /* Shim the Firebase APIs your JSX calls */
       window.initializeApp = firebase.initializeApp.bind(firebase);
-      window.getAuth = (app) => firebase.auth();
+      window.getAuth = () => firebase.auth();
       window.signInAnonymously = (...args) => firebase.auth().signInAnonymously(...args);
       window.signInWithCustomToken = (auth, token) => firebase.auth().signInWithCustomToken(token);
       window.onAuthStateChanged = (auth, cb) => firebase.auth().onAuthStateChanged(cb);
     </script>
-
-    <style>
-      /* Nice-looking page background as a fallback if Tailwind loads slowly */
-      body { background: #f3f4f6; }
-    </style>
   </head>
 
-  <body>
+  <body class="bg-gray-100">
     <div id="root"></div>
 
-    <!-- Your JSX file (after removing the two import lines at the top) -->
+    <!-- Load your JSX AFTER removing import lines and export default -->
     <script type="text/babel" data-presets="react" src="./Transcript_analyzer.jsx"></script>
 
-    <!-- Mount React root if your file exports default App; if not, keep this inline renderer -->
+    <!-- Mount App (your file doesn't render itself) -->
     <script type="text/babel" data-presets="react">
-      // If your JSX already calls ReactDOM.createRoot(...).render(<App />); you can remove this.
-      if (typeof App === "function") {
-        const root = ReactDOM.createRoot(document.getElementById("root"));
-        root.render(React.createElement(App));
-      }
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      // App is defined by the previous script after removing "export default App;"
+      root.render(<App />);
     </script>
   </body>
 </html>
