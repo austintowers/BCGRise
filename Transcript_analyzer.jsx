@@ -2,11 +2,7 @@
 // In a real application, this would be loaded from a file.
 const mockTranscript = `
 Commentary for Q1 2024:
-Gross Margin Rate decreased by 2% compared to budget due to two main factors. First, Volume of Hours was 15% below forecast, driven by a delay in the new client onboarding process. Second, Other Operational Expenses were 8% above budget, primarily from higher-than-expected software licensing costs.
-Indirect Costs (SG&A) were 5% over budget, mainly due to a 10% increase in wages as a result of recent market adjustments. Headcount remained flat.
-EBITDA was negatively impacted by both the lower Gross Margin and the higher Indirect Costs.
-Piece Pricing & Efficiency (PPR, PPE) met the internal benchmark, showing strong operational execution despite the volume challenges.
-The Outlook for the next three months is positive, with a forecast of revenue increasing by 10% as the new client comes online. Gross Margin % is expected to recover to budget levels.
+Paste transcript here
 `;
 
 const App = () => {
@@ -276,6 +272,7 @@ const App = () => {
         </div>
     );
 };
+
 
 
 
