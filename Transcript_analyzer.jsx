@@ -1,7 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { initializeApp } from 'firebase/app';
-
 // Define the mock transcript content for the commentary.
 // In a real application, this would be loaded from a file.
 const mockTranscript = `
@@ -280,5 +276,6 @@ const App = () => {
         </div>
     );
 };
+
 
 export default App;
