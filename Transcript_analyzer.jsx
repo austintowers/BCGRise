@@ -1,278 +1,315 @@
-// Define the mock transcript content for the commentary.
-// In a real application, this would be loaded from a file.
+/* Transcript_analyzer.jsx
+   No imports/exports (UMD + Babel in-browser).
+   Assumes index.html loads:
+   - React & ReactDOM UMD
+   - Firebase compat UMD (optional)
+   - Babel standalone
+   And defines (optional) globals:
+   - __firebase_config (JSON string), __initial_auth_token, __app_id
+   - __GEMINI_API_KEY  (string)
+   - initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged (shims)
+*/
+
+// Sample you can load via the button
 const mockTranscript = `
 Commentary for Q1 2024:
-Paste transcript here
+Gross Margin Rate decreased by 2% compared to budget due to two main factors. First, Volume of Hours was 15% below forecast, driven by a delay in the new client onboarding process. Second, Other Operational Expenses were 8% above budget, primarily from higher-than-expected software licensing costs.
+Indirect Costs (SG&A) were 5% over budget, mainly due to a 10% increase in wages as a result of recent market adjustments. Headcount remained flat.
+EBITDA was negatively impacted by both the lower Gross Margin and the higher Indirect Costs.
+Piece Pricing & Efficiency (PPR, PPE) met the internal benchmark, showing strong operational execution despite the volume challenges.
+The Outlook for the next three months is positive, with a forecast of revenue increasing by 10% as the new client comes online. Gross Margin % is expected to recover to budget levels.
 `;
 
 const App = () => {
-    const [transcript, setTranscript] = useState(mockTranscript);
-    const [commentary, setCommentary] = useState(null);
-    const [query, setQuery] = useState('');
-    const [result, setResult] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [isProcessingTranscript, setIsProcessingTranscript] = useState(true);
+  // --- UI state ---
+  const [transcript, setTranscript] = React.useState(''); // start EMPTY
+  const [commentary, setCommentary] = React.useState(null);
+  const [query, setQuery] = React.useState('');
+  const [result, setResult] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [procError, setProcError] = React.useState('');
+  const [isProcessingTranscript, setIsProcessingTranscript] = React.useState(false);
 
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  // --- Env/config (from index.html if provided) ---
+  let firebaseConfig = {};
+  let initialAuthToken = null;
+  let appId = 'default-app-id';
+  try {
+    firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+  } catch (_) {}
+  if (typeof __initial_auth_token !== 'undefined') initialAuthToken = __initial_auth_token;
+  if (typeof __app_id !== 'undefined') appId = __app_id;
 
-    const [firebaseApp, setFirebaseApp] = useState(null);
-    const [auth, setAuth] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authReady, setAuthReady] = React.useState(false);
+  const [userId, setUserId] = React.useState(null);
 
-    // Initialize Firebase and authenticate user
-    useEffect(() => {
-        const initFirebase = async () => {
-            try {
-                const app = initializeApp(firebaseConfig);
-                const authInstance = getAuth(app);
-                setFirebaseApp(app);
-                setAuth(authInstance);
+  // --- Firebase init (optional; guarded so demo works without it) ---
+  React.useEffect(() => {
+    (async () => {
+      try {
+        if (typeof initializeApp === 'function' && typeof getAuth === 'function') {
+          const app = initializeApp(firebaseConfig || {});
+          const auth = getAuth(app);
 
-                const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-                    if (user) {
-                        setUserId(user.uid);
-                    } else {
-                        setUserId(crypto.randomUUID());
-                    }
-                    setIsAuthReady(true);
-                });
-
-                if (initialAuthToken) {
-                    await signInWithCustomToken(authInstance, initialAuthToken);
-                } else {
-                    await signInAnonymously(authInstance);
-                }
-                return unsubscribe;
-            } catch (e) {
-                console.error("Error initializing Firebase:", e);
-                setError("Failed to initialize the application. Please try again.");
-            }
-        };
-
-        const unsubscribePromise = initFirebase();
-        return () => {
-            unsubscribePromise.then(unsubscribe => {
-                if (unsubscribe) unsubscribe();
+          let unsub = null;
+          if (typeof onAuthStateChanged === 'function') {
+            unsub = onAuthStateChanged(auth, (user) => {
+              if (user && user.uid) setUserId(user.uid);
+              else setUserId((crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()));
+              setAuthReady(true);
             });
-        };
-    }, []);
+          } else {
+            // compat-less environment; still proceed
+            setUserId((crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()));
+            setAuthReady(true);
+          }
 
-    // Function to generate the structured commentary from the transcript
-    const createCommentary = async (text) => {
-        setIsProcessingTranscript(true);
-        setError(null);
-        try {
-            const prompt = `
-            Analyze the following business commentary and extract key variance analysis points into a structured JSON object. The commentary is about KPIs.
-            Each key point should be an object in a JSON array with the following properties:
-            - "kpi": The name of the key performance indicator (e.g., "Gross Margin Rate", "Indirect Costs").
-            - "drivers": An array of strings describing the reasons or drivers for the variance.
-            - "comparison": A string indicating what the KPI was compared against (e.g., "budget", "forecast").
-            - "impact": A brief summary of the overall impact (e.g., "decreased", "increased", "met benchmark").
-            
-            Here is the commentary:
-            ${text}
-            
-            Generate only the JSON object, do not add any other text.
-            `;
+          // anonymous or custom token
+          if (initialAuthToken && typeof signInWithCustomToken === 'function') {
+            await signInWithCustomToken(auth, initialAuthToken);
+          } else if (typeof signInAnonymously === 'function') {
+            await signInAnonymously(auth);
+          } else {
+            // no auth methods; proceed anyway
+            setAuthReady(true);
+          }
 
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "kpi": { "type": "STRING" },
-                                "drivers": {
-                                    "type": "ARRAY",
-                                    "items": { "type": "STRING" }
-                                },
-                                "comparison": { "type": "STRING" },
-                                "impact": { "type": "STRING" }
-                            },
-                            "propertyOrdering": ["kpi", "drivers", "comparison", "impact"]
-                        }
-                    }
-                }
-            };
+          // clean up
+          return () => { if (unsub) try { unsub(); } catch(_){} };
+        } else {
+          // no firebase — continue
+          setUserId((crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()));
+          setAuthReady(true);
+        }
+      } catch (e) {
+        console.error('Firebase init error:', e);
+        setProcError('Failed to initialize auth. You can still try processing.');
+        setAuthReady(true);
+      }
+    })();
+  }, []);
 
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+  // --- Gemini helper: build URL with key ---
+  function geminiUrl(model) {
+    const key = (typeof __GEMINI_API_KEY !== 'undefined' && __GEMINI_API_KEY) ? __GEMINI_API_KEY : '';
+    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  }
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`API error: ${errorData.error.message}`);
+  // --- Create structured commentary (manual trigger only) ---
+  async function handleProcess() {
+    setResult('');
+    setProcError('');
+    setCommentary(null);
+
+    if (!transcript.trim()) {
+      setProcError('Please paste a transcript first.');
+      return;
+    }
+    if (!authReady) {
+      setProcError('Please wait… initializing.');
+      return;
+    }
+    if (!(typeof __GEMINI_API_KEY !== 'undefined' && __GEMINI_API_KEY)) {
+      setProcError('Missing Gemini API key. Define __GEMINI_API_KEY in index.html.');
+      return;
+    }
+
+    setIsProcessingTranscript(true);
+    try {
+      const prompt = `
+Analyze the following business commentary and extract key variance analysis points into a structured JSON array.
+Each item must have: "kpi" (string), "drivers" (string[]), "comparison" (string), "impact" (string).
+Only output JSON.
+
+Commentary:
+${transcript}
+      `.trim();
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                kpi: { type: "STRING" },
+                drivers: { type: "ARRAY", items: { type: "STRING" } },
+                comparison: { type: "STRING" },
+                impact: { type: "STRING" }
+              },
+              propertyOrdering: ["kpi", "drivers", "comparison", "impact"]
             }
-
-            const result = await response.json();
-            const jsonString = result.candidates[0].content.parts[0].text;
-            const parsedData = JSON.parse(jsonString);
-            setCommentary(parsedData);
-
-        } catch (e) {
-            console.error("Error processing transcript:", e);
-            setError("Failed to process the transcript. Please check the content.");
-        } finally {
-            setIsProcessingTranscript(false);
+          }
         }
-    };
+      };
 
-    useEffect(() => {
-        if (transcript) {
-            createCommentary(transcript);
-        }
-    }, [transcript]);
+      const resp = await fetch(geminiUrl('gemini-2.5-flash-preview-05-20'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    const handleQuery = async () => {
-        if (!query || !commentary) {
-            setResult("Please enter a query and ensure the transcript is processed.");
-            return;
-        }
+      if (!resp.ok) {
+        let msg = 'Unknown error';
+        try { msg = (await resp.json())?.error?.message || msg; } catch(_) {}
+        throw new Error(msg);
+      }
 
-        setIsLoading(true);
-        setError(null);
-        setResult('');
+      const data = await resp.json();
+      const jsonString = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+      const parsed = JSON.parse(jsonString);
+      setCommentary(parsed);
+    } catch (e) {
+      console.error('Error processing transcript:', e);
+      setProcError('Failed to process the transcript: ' + (e?.message || 'Unknown error'));
+    } finally {
+      setIsProcessingTranscript(false);
+    }
+  }
 
-        try {
-            const structuredCommentaryString = JSON.stringify(commentary, null, 2);
-            const prompt = `
-            You are a business analyst. Based on the following structured variance analysis commentary, answer the user's natural language query.
-            The user wants to know about the drivers and impacts of specific KPIs.
-            
-            Structured Commentary:
-            ${structuredCommentaryString}
-            
-            User Query: "${query}"
-            
-            Provide a concise, direct, and professional response that summarizes the relevant points from the commentary.
-            If the commentary does not contain information on the query, state that the information is not available.
-            `;
+  // --- Query over the structured commentary ---
+  async function handleQuery() {
+    setProcError('');
+    setResult('');
 
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }]
-            };
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    if (!query.trim()) {
+      setResult('Please enter a query.');
+      return;
+    }
+    if (!commentary) {
+      setResult('Please process a transcript first.');
+      return;
+    }
+    if (!(typeof __GEMINI_API_KEY !== 'undefined' && __GEMINI_API_KEY)) {
+      setProcError('Missing Gemini API key. Define __GEMINI_API_KEY in index.html.');
+      return;
+    }
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+    setIsLoading(true);
+    try {
+      const structured = JSON.stringify(commentary, null, 2);
+      const prompt = `
+You are a business analyst. Using this structured variance commentary, answer the user's question briefly and directly.
+If the info is not present, say it's not available.
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`API error: ${errorData.error.message}`);
-            }
+Structured Commentary:
+${structured}
 
-            const result = await response.json();
-            const textResult = result.candidates[0].content.parts[0].text;
-            setResult(textResult);
+User Query: "${query}"
+      `.trim();
 
-        } catch (e) {
-            console.error("Error processing query:", e);
-            setError("Failed to get a response. Please try a different query.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      const resp = await fetch(geminiUrl('gemini-2.5-flash-preview-05-20'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
 
-    return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-            <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl p-6 md:p-10 space-y-8">
-                <header className="text-center">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
-                        Variance Analysis Q&A
-                    </h1>
-                    <p className="text-gray-500 text-sm md:text-base">
-                        Query your business commentary using natural language.
-                    </p>
-                </header>
+      if (!resp.ok) {
+        let msg = 'Unknown error';
+        try { msg = (await resp.json())?.error?.message || msg; } catch(_) {}
+        throw new Error(msg);
+      }
 
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <p>{error}</p>
-                    </div>
-                )}
+      const data = await resp.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      setResult(text || 'No answer returned.');
+    } catch (e) {
+      console.error('Error processing query:', e);
+      setProcError('Failed to get a response: ' + (e?.message || 'Unknown error'));
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
-                {/* Transcript Input Section */}
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-700 mb-2">Commentary Transcript</h2>
-                    <textarea
-                        className="w-full p-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows="8"
-                        value={transcript}
-                        onChange={(e) => setTranscript(e.target.value)}
-                        placeholder="Paste your commentary transcript here..."
-                    ></textarea>
-                </div>
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl p-6 md:p-10 space-y-8">
+        <header className="text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
+            Variance Analysis Q&A
+          </h1>
+          <p className="text-gray-500 text-sm md:text-base">
+            Paste a transcript, process it, then ask questions.
+          </p>
+        </header>
 
-                {/* Query Section */}
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-700 mb-2">Ask a Question</h2>
-                    <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                        <input
-                            type="text"
-                            className="flex-1 p-4 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., Why was Gross Margin down?"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    handleQuery();
-                                }
-                            }}
-                        />
-                        <button
-                            onClick={handleQuery}
-                            disabled={isLoading || isProcessingTranscript}
-                            className={`px-8 py-4 rounded-lg font-bold text-white transition-colors duration-200
-                                ${isLoading || isProcessingTranscript
-                                    ? 'bg-blue-300 cursor-not-allowed'
-                                    : 'bg-blue-600 hover:bg-blue-700'
-                                }`}
-                        >
-                            {isLoading ? 'Thinking...' : 'Query'}
-                        </button>
-                    </div>
-                </div>
+        {procError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
+            <p>{procError}</p>
+          </div>
+        )}
 
-                {/* Results Section */}
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-700 mb-2">Analysis Result</h2>
-                    <div className="min-h-[150px] p-6 border border-gray-300 rounded-lg bg-gray-50 text-gray-800">
-                        {isProcessingTranscript && (
-                            <p className="text-center text-gray-500">
-                                Processing transcript...
-                            </p>
-                        )}
-                        {!isProcessingTranscript && !result && !error && (
-                            <p className="text-center text-gray-500">
-                                Enter a query above to get a response.
-                            </p>
-                        )}
-                        {result && (
-                            <p className="whitespace-pre-wrap">{result}</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+        {/* Transcript Input */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Commentary Transcript</h2>
+          <textarea
+            className="w-full p-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows="10"
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder="Paste your commentary transcript here…"
+          />
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              onClick={handleProcess}
+              disabled={isProcessingTranscript}
+              className={`px-6 py-3 rounded-lg font-bold text-white transition-colors
+                ${isProcessingTranscript ? 'bg-green-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+            >
+              {isProcessingTranscript ? 'Processing…' : 'Process Transcript'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTranscript(mockTranscript)}
+              className="px-4 py-3 rounded-lg bg-gray-200 hover:bg-gray-300"
+            >
+              Load Sample Transcript
+            </button>
+          </div>
+        </section>
+
+        {/* Query */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Ask a Question</h2>
+          <div className="flex flex-col md:flex-row gap-3">
+            <input
+              type="text"
+              className="flex-1 p-4 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Why was Gross Margin down?"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleQuery(); }}
+            />
+            <button
+              onClick={handleQuery}
+              disabled={isLoading || isProcessingTranscript}
+              className={`px-8 py-4 rounded-lg font-bold text-white transition-colors
+                ${(isLoading || isProcessingTranscript) ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {isLoading ? 'Thinking…' : 'Query'}
+            </button>
+          </div>
+        </section>
+
+        {/* Results */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Analysis Result</h2>
+          <div className="min-h-[150px] p-6 border border-gray-300 rounded-lg bg-gray-50 text-gray-800">
+            {isProcessingTranscript && <p className="text-center text-gray-500">Processing transcript…</p>}
+            {!isProcessingTranscript && !result && !procError && !commentary && (
+              <p className="text-center text-gray-500">Paste a transcript and click “Process Transcript”.</p>
+            )}
+            {!isProcessingTranscript && commentary && !result && !procError && (
+              <p className="text-center text-gray-500">Transcript processed. Enter a question above.</p>
+            )}
+            {result && <pre className="whitespace-pre-wrap">{result}</pre>}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 };
 
-
-
-
+// No export (index.html mounts <App />)
