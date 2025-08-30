@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Revenue KPI Waterfall — Web</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#121827; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa;
+      --green:#22c55e; --red:#ef4444; --total:#3b82f6;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font:500 16px/1.45 system-ui,Segoe UI,Inter,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#0b0f17,#0b0f17 220px,#0f172a);color:var(--text)}
+    header{padding:28px 20px 12px;max-width:1100px;margin:0 auto}
+    h1{margin:0 0 6px;font-size:28px;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:14px}
+    .wrap{max-width:1100px;margin:12px auto 40px;padding:0 20px;display:grid;gap:16px;grid-template-columns:1.2fr 2fr}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card h3{margin:0 0 10px;font-size:16px}
+    .pad{padding:16px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="text"], input[type="number"], select, textarea{width:100%;background:#0b1220;border:1px solid #1f2937;color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px}
+    textarea{min-height:180px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    button{border:0;border-radius:12px;padding:10px 14px;background:#1f2937;color:#e5e7eb;cursor:pointer;transition:.2s ease;box-shadow:inset 0 0 0 1px #334155}
+    button:hover{transform:translateY(-1px);box-shadow:inset 0 0 0 1px var(--accent),0 8px 20px rgba(2,132,199,.25)}
+    button.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 10px 24px rgba(37,99,235,.25)}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .legend{font-size:12px;color:var(--muted)}
+    #chart{height:520px}
+    footer{max-width:1100px;margin:6px auto 40px;padding:0 20px;color:var(--muted);font-size:12px}
+    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #324253;border-radius:999px;padding:6px 10px;margin-right:8px}
+    .swatch{width:12px;height:12px;border-radius:3px;display:inline-block}
+    @media (max-width: 980px){.wrap{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Revenue KPI Waterfall</h1>
+    <div class="sub">Publish-ready waterfall for Budget → Forecast → Actual with clean formatting, currency options, and export.</div>
+  </header>
+
+  <section class="wrap">
+    <!-- Controls -->
+    <div class="card pad">
+      <h3>Data & Settings</h3>
+      <label for="csv">Paste data (CSV/TSV). Columns: <b>Label, Measure, Value</b></label>
+      <textarea id="csv"></textarea>
+      <div class="hint">Measure must be one of <code>absolute</code>, <code>relative</code>, or <code>total</code> (Plotly semantics). Typical flow is: Budget (absolute) → Variance vs Budget (relative) → Forecast (absolute) → Variance vs Forecast (relative) → Actual (absolute or total).</div>
+
+      <div class="row3" style="margin-top:12px">
+        <div>
+          <label for="currency">Currency symbol</label>
+          <input id="currency" type="text" value="$" />
+        </div>
+        <div>
+          <label for="decimals">Decimals</label>
+          <input id="decimals" type="number" min="0" max="4" value="0" />
+        </div>
+        <div>
+          <label for="title">Chart title</label>
+          <input id="title" type="text" value="Revenue KPIs — Budget vs Forecast vs Actual" />
+        </div>
+      </div>
+
+      <div class="row3" style="margin-top:10px">
+        <div>
+          <label>Increase color</label>
+          <input id="incColor" type="color" value="#22c55e" />
+        </div>
+        <div>
+          <label>Decrease color</label>
+          <input id="decColor" type="color" value="#ef4444" />
+        </div>
+        <div>
+          <label>Total color</label>
+          <input id="totColor" type="color" value="#3b82f6" />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="renderBtn">Render chart</button>
+        <button id="sampleBtn">Load sample</button>
+        <button id="downloadPngBtn">Download PNG</button>
+        <button id="downloadHtmlBtn">Download HTML</button>
+      </div>
+
+      <div class="hint" style="margin-top:10px">
+        <span class="pill"><span class="swatch" style="background:#22c55e"></span> Increase</span>
+        <span class="pill"><span class="swatch" style="background:#ef4444"></span> Decrease</span>
+        <span class="pill"><span class="swatch" style="background:#3b82f6"></span> Total</span>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card pad">
+      <div id="chart"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </section>
+
+  <footer>
+    Tip: Variances should be entered as <em>relative</em> rows (positive for lift, negative for drag). Use an <em>absolute</em> row to reset the running total (e.g., Forecast or Actual), or a <em>total</em> row to compute a final total bar.
+  </footer>
+
+<script>
+  const csvEl = document.getElementById('csv');
+  const currencyEl = document.getElementById('currency');
+  const decimalsEl = document.getElementById('decimals');
+  const titleEl = document.getElementById('title');
+  const incColorEl = document.getElementById('incColor');
+  const decColorEl = document.getElementById('decColor');
+  const totColorEl = document.getElementById('totColor');
+
+  const sampleCSV = `Label,Measure,Value\nBudget,absolute,1000000\nVariance vs Budget,relative,150000\nForecast,absolute,1150000\nPromo Impact,relative,-60000\nPricing Uptick,relative,90000\nActual,total,1180000`;
+
+  function parseCSV(text){
+    // Support CSV or TSV; very light parser (no quoted commas). For robust parsing, swap with PapaParse.
+    const rows = text.trim().split(/\r?\n/).filter(Boolean);
+    if(rows.length === 0) return [];
+    let delim = rows[0].includes('\t') ? '\t' : ',';
+    const header = rows[0].split(delim).map(s=>s.trim().toLowerCase());
+    const idxLabel = header.indexOf('label');
+    const idxMeasure = header.indexOf('measure');
+    const idxValue = header.indexOf('value');
+    if(idxLabel===-1 || idxMeasure===-1 || idxValue===-1){
+      alert('Header must include Label, Measure, Value');
+      return [];
+    }
+    const data = [];
+    for(let i=1;i<rows.length;i++){
+      const parts = rows[i].split(delim);
+      const label = (parts[idxLabel]||'').trim();
+      const measure = (parts[idxMeasure]||'').trim().toLowerCase();
+      const value = Number((parts[idxValue]||'0').toString().replace(/[,\s]/g,''));
+      if(!label) continue;
+      if(!['absolute','relative','total'].includes(measure)){
+        alert(`Row ${i+1}: Measure must be absolute | relative | total`);
+        return [];
+      }
+      if(!Number.isFinite(value)){
+        alert(`Row ${i+1}: Value must be a number`);
+        return [];
+      }
+      data.push({label, measure, value});
+    }
+    return data;
+  }
+
+  function formatMoney(num, currency, decimals){
+    const d = Math.max(0, Math.min(4, Number(decimals)||0));
+    return currency + new Intl.NumberFormat(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}).format(num);
+  }
+
+  function render(){
+    const rows = parseCSV(csvEl.value);
+    if(!rows.length) return;
+
+    const x = rows.map(r=>r.label);
+    const measures = rows.map(r=>r.measure);
+    // Plotly uses y for step values when measure is relative, and absolute/total bars compute based on y.
+    // To achieve clean labels, compute cumulative to show on-hover and labels.
+    const y = rows.map(r=>r.value);
+
+    const incColor = incColorEl.value || '#22c55e';
+    const decColor = decColorEl.value || '#ef4444';
+    const totColor = totColorEl.value || '#3b82f6';
+
+    const trace = {
+      type: 'waterfall',
+      name: 'Revenue',
+      orientation: 'v',
+      x,
+      measure: measures,
+      textposition: 'outside',
+      connector: { line: { color: '#64748b', width: 1 } },
+      increasing: { marker: { color: incColor } },
+      decreasing: { marker: { color: decColor } },
+      totals: { marker: { color: totColor } },
+      y,
+      hovertemplate: '%{x}<br>%{customdata}<extra></extra>',
+    };
+
+    // compute running totals to provide pretty labels
+    const currency = currencyEl.value || '$';
+    const decimals = Number(decimalsEl.value)||0;
+
+    const run = [];
+    let acc = 0;
+    for(let i=0;i<rows.length;i++){
+      const m = measures[i], val = y[i];
+      if(m==='absolute') acc = val;
+      else if(m==='relative') acc += val;
+      else if(m==='total') acc = acc + val; // For total, you can either set val=0 and rely on total calc; we keep additive for label clarity.
+      run.push(acc);
+    }
+
+    const custom = rows.map((r,i)=>{
+      const v = r.measure==='relative' ? (r.value>=0?'+':'')+formatMoney(r.value,currency,decimals) : formatMoney(run[i],currency,decimals);
+      const lbl = r.measure==='relative' ? 'Δ ' : '';
+      return `${lbl}${v}`;
+    });
+
+    trace.customdata = custom;
+    trace.text = custom;
+
+    const layout = {
+      title: {text: titleEl.value || 'Revenue KPIs — Waterfall', font:{size:20}},
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      margin: {t:50,r:18,b:60,l:70},
+      yaxis: {title: 'Revenue', tickfont:{size:12}, gridcolor:'#1f2937', zerolinecolor:'#334155'},
+      xaxis: {tickfont:{size:12}},
+      waterfallgap: 0.3,
+      showlegend: false,
+      autosize: true,
+    };
+
+    Plotly.react('chart', [trace], layout, {displayModeBar:false,responsive:true});
+
+    // Legend summary
+    const legend = document.getElementById('legend');
+    const inc = rows.filter(r=>r.measure==='relative' && r.value>0).reduce((a,b)=>a+b.value,0);
+    const dec = rows.filter(r=>r.measure==='relative' && r.value<0).reduce((a,b)=>a+b.value,0);
+    const startIdx = rows.findIndex(r=>r.measure==='absolute');
+    const start = startIdx>=0 ? rows[startIdx].value : 0;
+    const end = run[run.length-1]||0;
+    legend.innerHTML = `Start: <b>${formatMoney(start,currency,decimals)}</b> · ↑ Increases: <b style="color:${incColor}">${formatMoney(inc,currency,decimals)}</b> · ↓ Decreases: <b style="color:${decColor}">${formatMoney(dec,currency,decimals)}</b> · End: <b>${formatMoney(end,currency,decimals)}</b>`;
+  }
+
+  function downloadPNG(){
+    Plotly.toImage('chart', {format:'png', width:1200, height:600, scale:2})
+      .then(dataUrl => {
+        const a = document.createElement('a');
+        a.href = dataUrl; a.download = 'revenue-waterfall.png'; a.click();
+      });
+  }
+
+  function downloadHTML(){
+    const htmlBlob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(htmlBlob);
+    link.download = 'revenue-waterfall.html';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // Wire up
+  document.getElementById('renderBtn').addEventListener('click', render);
+  document.getElementById('downloadPngBtn').addEventListener('click', downloadPNG);
+  document.getElementById('downloadHtmlBtn').addEventListener('click', downloadHTML);
+  document.getElementById('sampleBtn').addEventListener('click', () => { csvEl.value = sampleCSV; render(); });
+
+  // Load sample at start
+  csvEl.value = sampleCSV; render();
+</script>
+</body>
+</html>
