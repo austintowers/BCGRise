@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Before → After | Finance Controlling Transformation</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --panel:#111a2e;
+    --ink:#eef3ff;
+    --muted:#a5b2d8;
+    --brand:#6aa9ff;
+    --brand-2:#85e0ff;
+    --good:#00d38d;
+    --warn:#ffd666;
+    --bad:#ff6b6b;
+    --ai:#9b8cff;
+    --card:#0f1730;
+    --accent:#5fe1a1;
+    --before:#ffadad;
+    --after:#b0f2c2;
+    --shadow: 0 10px 25px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font:16px/1.35 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    color:var(--ink);
+    background: radial-gradient(1200px 800px at 20% -10%, #19264a 0%, #0b1220 50%) no-repeat, var(--bg);
+  }
+
+  .wrap{
+    max-width:1200px; margin:28px auto; padding:0 16px;
+  }
+
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px;
+  }
+  .title{
+    display:flex; align-items:center; gap:12px;
+  }
+  .badge{
+    background:linear-gradient(135deg, var(--brand), var(--brand-2));
+    color:#051026; padding:6px 10px; border-radius:999px; font-weight:700; box-shadow:var(--shadow);
+  }
+
+  /* layout */
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns: 1fr minmax(320px, 560px) 1fr;
+  }
+  @media (max-width:1080px){ .grid{ grid-template-columns:1fr; } }
+
+  /* cards */
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px; padding:16px; box-shadow: var(--shadow);
+    backdrop-filter: blur(6px);
+  }
+  .section-title{
+    display:flex; align-items:center; gap:8px; margin:0 0 8px 0; font-weight:800; letter-spacing:.3px;
+    text-transform:uppercase; font-size:13px; color:var(--muted);
+  }
+  .role{
+    display:flex; align-items:center; gap:10px; margin:12px 0 6px; font-weight:700;
+  }
+  .role svg{ width:22px; height:22px; opacity:.9 }
+  .role.CFO{ color:#ffd6a5 }
+  .role.EVP{ color:#caffbf }
+  .role.Country{ color:#bdb2ff }
+
+  .bullets{ list-style:none; padding-left:0; margin:0 }
+  .bullets li{
+    position:relative; padding:8px 8px 8px 28px; border-radius:10px;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .bullets li + li{ margin-top:6px }
+  .bullets li::before{
+    content:""; position:absolute; left:10px; top:13px; width:8px; height:8px; border-radius:50%;
+    background:currentColor; box-shadow:0 0 0 3px rgba(255,255,255,.07) inset;
+  }
+  .bullets li:hover{ transform:translateY(-2px); background:rgba(255,255,255,.04) }
+  .bullets li[aria-current="true"]{ outline:2px solid var(--accent); background:rgba(95,225,161,.08) }
+
+  /* before/after toggle */
+  .toggle{
+    display:flex; gap:8px; align-items:center; background:var(--panel); border:1px solid rgba(255,255,255,.08);
+    padding:6px; border-radius:999px; box-shadow:var(--shadow);
+  }
+  .toggle button{
+    appearance:none; border:0; padding:8px 14px; border-radius:999px; color:var(--ink); background:transparent; cursor:pointer; font-weight:700;
+  }
+  .toggle button[aria-pressed="true"]{ background:linear-gradient(135deg, #1f2b52, #1a2443); outline:2px solid rgba(255,255,255,.08) }
+  .chip{ font-size:12px; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.08); margin-left:8px }
+
+  /* pyramid */
+  .pyramid{
+    position:relative; padding:20px 16px 18px;
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:20px; box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .pyr-stack{
+    display:flex; flex-direction:column-reverse; gap:8px; margin-bottom:12px;
+  }
+  .layer{
+    --c: #2a3b72;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--c), #fff 2%), color-mix(in oklab, var(--c), #000 12%));
+    border:1px solid color-mix(in oklab, var(--c), #fff 10%);
+    color:#dfe7ff;
+    border-radius:12px;
+    padding:14px 14px 14px 16px;
+    clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
+    position:relative;
+    transition: transform .15s ease, box-shadow .15s ease, outline-color .15s ease;
+  }
+  .layer:hover{ transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,.35) }
+  .layer[data-hot="true"]{ outline:2px solid var(--accent) }
+  .layer h4{ margin:.2rem 0 .35rem; font-size:15px }
+  .layer p{ margin:.15rem 0 0; font-size:13px; color:var(--muted) }
+
+  .basebars{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:8px }
+  .base{
+    background:#0e1833; border:1px solid rgba(255,255,255,.08); color:#a7beff;
+    text-align:center; padding:8px 10px; border-radius:10px; font-weight:700; letter-spacing:.3px;
+  }
+
+  /* after column cards */
+  .after-card .bullets li::before{ background:var(--good) }
+
+  /* tooltips (pure CSS) */
+  .tip{
+    position:relative; cursor:help;
+  }
+  .tip .tiptext{
+    pointer-events:none;
+    position:absolute; left:50%; bottom:110%; transform:translateX(-50%);
+    width:min(320px, 90vw);
+    background:#101934; border:1px solid rgba(255,255,255,.1);
+    color:#eaf1ff; border-radius:12px; padding:10px 12px; opacity:0; translate:0 6px; transition:all .12s ease;
+    box-shadow:var(--shadow); font-size:13px; z-index:10;
+  }
+  .tip:hover .tiptext{ opacity:1; translate:0 0 }
+  .kbd{ font:600 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#0a1329; border:1px solid rgba(255,255,255,.15); padding:2px 6px; border-radius:6px }
+
+  /* helper banner */
+  .helper{
+    margin-top:10px; font-size:13px; color:var(--muted);
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  }
+  .legend{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .dot{ width:10px; height:10px; border-radius:50% }
+  .dot.before{ background:var(--before) }
+  .dot.after{ background:var(--after) }
+  .dot.ai{ background:var(--ai) }
+
+  /* image tray (optional reference) */
+  details.preview{
+    margin-top:14px; border:1px dashed rgba(255,255,255,.15); border-radius:12px; padding:10px 12px;
+  }
+  details.preview summary{ cursor:pointer; color:var(--muted) }
+  details.preview img{ max-width:100%; border-radius:12px; margin-top:8px; display:block }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title">
+      <span class="badge">Finance Controlling</span>
+      <h1 style="margin:0;font-size:clamp(20px,2.2vw,28px)">Before → After Transformation</h1>
+    </div>
+
+    <div class="toggle" role="group" aria-label="Toggle sections">
+      <button id="btnBefore" aria-pressed="true">Before <span class="chip">current pain</span></button>
+      <button id="btnAfter" aria-pressed="true">After <span class="chip">target state</span></button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- BEFORE (left column) -->
+    <section id="colBefore" class="card">
+      <p class="section-title">Before — pain points</p>
+
+      <div class="role CFO">
+        <!-- user icon -->
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.015-8 4.5V21h16v-2.5C20 16.015 16.418 14 12 14Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        CFO
+      </div>
+      <ul class="bullets" data-role="CFO">
+        <li data-layer="L4">Reduced strategic performance clarity — budget vs forecast vs investor expectations</li>
+        <li data-layer="L4">Hidden risks & weak foresight — tariffs, FX, attrition, inflation, scenario planning</li>
+        <li data-layer="L2">Inconsistent insights across countries — commentary, detail, comparability issues</li>
+      </ul>
+
+      <div class="role EVP">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="7" r="4.25" stroke="currentColor" stroke-width="1.5"/><path d="M4 20a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="1.5"/></svg>
+        EVP
+      </div>
+      <ul class="bullets" data-role="EVP">
+        <li data-layer="L3">Higher cycle time for month end — 28 sessions across group, 7 in Asia</li>
+        <li data-layer="L3">Follow-ups not traceable; inconsistency in reporting</li>
+      </ul>
+
+      <div class="role Country">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8a5 5 0 1 1 10 0v3H7Z" stroke="currentColor" stroke-width="1.5"/><path d="M4 20v-3a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        Country
+      </div>
+      <ul class="bullets" data-role="Country">
+        <li data-layer="L2">Time spent transferring to PowerPoint</li>
+        <li data-layer="L1">Not sure level of detail is right</li>
+        <li data-layer="L1">Follow-ups and linkage to outcomes not clear</li>
+      </ul>
+    </section>
+
+    <!-- PYRAMID (center) -->
+    <section class="pyramid" aria-label="Solution pyramid">
+      <div class="pyr-stack">
+        <!-- L1 bottom -->
+        <div class="layer tip" data-layer-id="L1" style="--c:#213666">
+          <h4>AI-guided actions & structured commentary</h4>
+          <p>Follow-ups based on variances • Reminders • Japan/Asia focus</p>
+          <div class="tiptext">
+            AI nudges for owners & due dates. Add commentary in a schema so it’s queryable later. <span class="kbd">Click</span> bullets on either side to highlight this layer.
+          </div>
+        </div>
+
+        <!-- L2 -->
+        <div class="layer tip" data-layer-id="L2" style="--c:#244277">
+          <h4>Single pane of glass for Asia</h4>
+          <p>Natural-language queryable database • Action tracker tied to outcomes</p>
+          <div class="tiptext">Unify site/customer KPIs, tie actions to measurable outcomes, and ask questions in plain English or Mandarin.</div>
+        </div>
+
+        <!-- L3 -->
+        <div class="layer tip" data-layer-id="L3" style="--c:#285085">
+          <h4>Regional drill-downs & comparisons</h4>
+          <p>Country-to-region comparisons • Trend views • Standardized narratives</p>
+          <div class="tiptext">Normalize and compare across countries, align on common definitions, and visualize trends without slide-wrangling.</div>
+        </div>
+
+        <!-- L4 top -->
+        <div class="layer tip" data-layer-id="L4" style="--c:#2c5e97">
+          <h4>Strategic dashboard</h4>
+          <p>Macro trends & risks • Drill-down by region • Investor-ready clarity</p>
+          <div class="tiptext">Bring tariffs, FX, inflation, and attrition together with scenarios to support long-term target tracking.</div>
+        </div>
+      </div>
+
+      <div class="basebars">
+        <div class="base">PBCS</div>
+        <div class="base">eTraq</div>
+        <div class="base">Manual</div>
+      </div>
+
+      <div class="helper">
+        <div class="legend">
+          <span class="dot before"></span><span>Before = pain</span>
+          <span class="dot after"></span><span>After = benefit</span>
+          <span class="dot ai"></span><span>AI/automation</span>
+        </div>
+        <span style="margin-left:auto">Tip: click any bullet to see the related layer glow.</span>
+      </div>
+
+      <details class="preview">
+        <summary>Show original reference image (optional)</summary>
+        <img src="sandbox:/mnt/data/e7b2bef2-3427-4486-b65c-b101db5371db.png" alt="Original before/after slide reference">
+      </details>
+    </section>
+
+    <!-- AFTER (right column) -->
+    <section id="colAfter" class="card after-card">
+      <p class="section-title">After — outcomes & benefits</p>
+
+      <div class="role CFO">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.015-8 4.5V21h16v-2.5C20 16.015 16.418 14 12 14Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        CFO
+      </div>
+      <ul class="bullets" data-role="CFO">
+        <li data-layer="L4">Focus on long-term targets; macro clarity</li>
+        <li data-layer="L3">Clarity on trends by region</li>
+        <li data-layer="L3">Zoom into problem areas fast</li>
+      </ul>
+
+      <div class="role EVP">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="7" r="4.25" stroke="currentColor" stroke-width="1.5"/><path d="M4 20a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="1.5"/></svg>
+        EVP
+      </div>
+      <ul class="bullets" data-role="EVP">
+        <li data-layer="L3">Comparison across countries</li>
+        <li data-layer="L3">Regional trend view</li>
+        <li data-layer="L2">Clarity on actions & follow-ups</li>
+      </ul>
+
+      <div class="role Country">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8a5 5 0 1 1 10 0v3H7Z" stroke="currentColor" stroke-width="1.5"/><path d="M4 20v-3a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        Country
+      </div>
+      <ul class="bullets" data-role="Country">
+        <li data-layer="L1">Less time copying to PowerPoint</li>
+        <li data-layer="L1">Easier follow-ups & tracking</li>
+        <li data-layer="L2">Clear linkage of actions to outcomes</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+  // Utilities
+  const q = (sel, ctx=document)=>ctx.querySelector(sel);
+  const qa = (sel, ctx=document)=>Array.from(ctx.querySelectorAll(sel));
+
+  // Highlight a pyramid layer and mark clicked bullet
+  function highlight(layerId, bullet){
+    // clear bullets
+    qa('.bullets li[aria-current="true"]').forEach(li=>li.removeAttribute('aria-current'));
+    if (bullet) bullet.setAttribute('aria-current','true');
+
+    // glow a single layer
+    qa('.layer').forEach(el=>el.dataset.hot = (el.dataset.layerId === layerId) ? 'true' : 'false');
+  }
+
+  // Bind list clicks
+  qa('.bullets li').forEach(li=>{
+    li.addEventListener('click', ()=>highlight(li.dataset.layer, li));
+    li.addEventListener('keyup', (e)=>{ if(e.key==='Enter' || e.key===' ') highlight(li.dataset.layer, li) });
+    li.setAttribute('tabindex','0');
+    li.setAttribute('role','button');
+    li.setAttribute('aria-label', 'Highlight related layer');
+  });
+
+  // Default selection
+  highlight('L3', null);
+
+  // Before/After visibility toggles
+  const btnBefore = q('#btnBefore');
+  const btnAfter = q('#btnAfter');
+  const colBefore = q('#colBefore');
+  const colAfter  = q('#colAfter');
+
+  function syncToggle(){
+    colBefore.style.display = btnBefore.getAttribute('aria-pressed')==='true' ? '' : 'none';
+    colAfter.style.display  = btnAfter.getAttribute('aria-pressed')==='true'  ? '' : 'none';
+  }
+  [btnBefore, btnAfter].forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const pressed = btn.getAttribute('aria-pressed')==='true';
+      btn.setAttribute('aria-pressed', String(!pressed));
+      syncToggle();
+    });
+  });
+  syncToggle();
+
+  // Keyboard hint: press 1..4 to highlight layers bottom..top
+  window.addEventListener('keydown', e=>{
+    const map = { '1':'L1','2':'L2','3':'L3','4':'L4' };
+    if(map[e.key]) highlight(map[e.key], null);
+  });
+</script>
+</body>
+</html>
