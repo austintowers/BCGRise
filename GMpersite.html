@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GM per Site – MTD Dashboard (Prototype)</title>
+  <style>
+    :root{
+      --amber:#f59e0b;
+      --amber-red:#ef4444;
+      --ok:#10b981;
+      --muted:#6b7280;
+      --chip:#e5e7eb;
+      --bg:#0b1020;
+      --panel:#121833;
+      --panel-2:#0f152b;
+      --ink:#e5e7eb;
+      --ink-dim:#c7cad1;
+      --accent:#60a5fa;
+    }
+    html,body{height:100%;}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";background:var(--bg);color:var(--ink);} 
+    .wrap{max-width:1200px;margin:0 auto;padding:24px;}
+    h1{font-size:22px;margin:0 0 8px;}
+    .sub{color:var(--ink-dim);font-size:14px;margin-bottom:18px}
+    .bar{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;margin-bottom:16px}
+    .controls{display:flex;flex-wrap:wrap;gap:10px}
+    .ctrl{background:var(--panel);border:1px solid #1f2747;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px}
+    .ctrl label{font-size:12px;color:var(--ink-dim)}
+    select,input[type="number"],input[type="range"]{background:var(--panel-2);color:var(--ink);border:1px solid #263056;border-radius:8px;padding:6px 8px;font-size:12px}
+    .summary{display:flex;gap:12px;flex-wrap:wrap}
+    .chip{background:var(--panel);border:1px solid #1f2747;color:var(--ink);padding:10px 12px;border-radius:12px;display:flex;align-items:center;gap:8px}
+    .chip b{font-size:18px}
+
+    .grid{background:var(--panel);border:1px solid #1f2747;border-radius:14px;overflow:hidden}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{position:sticky;top:0;background:linear-gradient(180deg,#151d3c,#121833);border-bottom:1px solid #1f2747;color:#aab1c7;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding:10px;text-align:left}
+    tbody td,tbody th{padding:10px;border-bottom:1px solid #1f2747;font-size:13px}
+    tbody tr:hover{background:#101735}
+    tbody th{color:#cdd3e7;font-weight:600}
+
+    .kpi{display:flex;align-items:center;gap:6px}
+    .badge{font-size:11px;border-radius:999px;padding:2px 8px;border:1px solid #263056;background:var(--panel-2);color:#b7c0dc}
+    .need-comment{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#cbd5e1;background:#1f2937;padding:2px 6px;border-radius:999px;border:1px dashed #334155}
+    .need-comment::before{content:"💬"}
+
+    .var{font-variant-numeric:tabular-nums}
+    .ok{background:rgba(16,185,129,.15);color:#22c55e;border:1px solid rgba(34,197,94,.35)}
+    .amber{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.35)}
+    .amber-red{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.35)}
+
+    .legend{display:flex;gap:8px;align-items:center;color:#9aa3bd;font-size:12px}
+    .sw{width:12px;height:12px;border-radius:3px}
+
+    .panel{background:var(--panel);border:1px solid #1f2747;border-radius:14px;padding:14px}
+    .two-col{display:grid;grid-template-columns:1fr 360px;gap:16px}
+
+    .site-card{display:grid;gap:8px}
+    .gauge{height:10px;background:#0c1330;border:1px solid #263056;border-radius:999px;overflow:hidden}
+    .gauge>div{height:100%}
+
+    .muted{color:var(--muted);font-size:12px}
+    .footer{margin-top:18px;color:#9aa3bd;font-size:12px}
+    .sticky-top{position:sticky;top:0;z-index:2}
+
+    .btn{background:#0f3e7a;border:1px solid #1d4ed8;color:#e5edff;padding:8px 10px;border-radius:10px;font-size:12px;cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    @media (max-width: 1080px){
+      .two-col{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GM per Site – MTD Dashboard</h1>
+    <div class="sub">Systematic and model‑driven alerts for Volume, Revenue, GM, Billable Rate, ABC, PPE, and GMR with editable thresholds. Toggle BUD/FC logic by month.</div>
+
+    <div class="bar">
+      <div class="controls">
+        <div class="ctrl">
+          <label>Month</label>
+          <select id="monthSel">
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9" selected>Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Reference model</label>
+          <span id="refModel" class="badge">FC (Jul–Dec) / BUD (Jan–Jun)</span>
+        </div>
+        <div class="ctrl"><label>±% threshold (Vol/Rev/GM/Rate)</label>
+          <input id="thr5" type="range" min="1" max="15" value="5"/>
+          <span id="thr5v" class="badge">5%</span>
+        </div>
+        <div class="ctrl"><label>±% red (Vol/Rev/GM/Rate)</label>
+          <input id="thr10" type="range" min="3" max="25" value="10"/>
+          <span id="thr10v" class="badge">10%</span>
+        </div>
+        <div class="ctrl"><label>GMR ±pts amber/red</label>
+          <input id="gmrA" type="number" value="3" style="width:56px"/>/ <input id="gmrR" type="number" value="5" style="width:56px"/>
+        </div>
+        <div class="ctrl"><label>ABC min %</label><input id="abcMin" type="number" value="90" style="width:64px"/></div>
+        <div class="ctrl"><label>PPE min</label><input id="ppeMin" type="number" value="0" style="width:64px"/></div>
+        <button class="btn" id="resetBtn">Reset thresholds</button>
+      </div>
+      <div class="legend">
+        <div class="sw ok" style="background:rgba(16,185,129,.6)"></div> OK
+        <div class="sw" style="background:rgba(245,158,11,.6)"></div> Amber (warn)
+        <div class="sw" style="background:rgba(239,68,68,.6)"></div> Amber‑Red (critical)
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel sticky-top">
+        <div class="summary" id="summaryRow">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <div class="panel site-card" id="detailCard">
+        <h3 id="dSite">Select a site</h3>
+        <div class="muted" id="dRef">Reference: FC for H2, BUD for H1 • MTD view</div>
+        <div>
+          <div class="muted">GM% (last 3 months)</div>
+          <div class="gauge" aria-label="GM trend"><div id="gmTrend" style="width:50%;background:linear-gradient(90deg,#22c55e,#60a5fa)"></div></div>
+        </div>
+        <div>
+          <div class="muted">Revenue vs Ref</div>
+          <div class="gauge"><div id="revTrend" style="width:40%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
+          <div class="badge" id="dABC">ABC: —</div>
+          <div class="badge" id="dPPE">PPE: —</div>
+          <div class="badge" id="dGMR">GMR Δ: —</div>
+          <div class="need-comment" id="dComment" style="display:none">Comment required</div>
+        </div>
+        <div class="footer">Click a row to see details. Comment chip appears when any threshold is breached.</div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:16px">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th style="width:180px">Site</th>
+            <th>Volume Δ%</th>
+            <th>Revenue Δ%</th>
+            <th>GM Δ%</th>
+            <th>Billable Rate Δ%</th>
+            <th>ABC %</th>
+            <th>PPE</th>
+            <th>GMR Δ pts</th>
+            <th>Comments</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">Prototype only – plug your dataset and hook logic to your BI layer. Thresholds are adjustable above. BUD applies for Jan–Jun; FC applies for Jul–Dec.</div>
+  </div>
+
+  <script>
+    // --- Mock data (replace with real feed) ---
+    const SITES = [
+      {site:"Tokyo", vol:-6.5, rev:-3.2, gm:-8.9, rate:2.1, abc:92, ppe:1.2, gmr:-2.8, gmHist:[48,46,45], revAbs:[-2, -3, -3.2]},
+      {site:"Osaka", vol:7.8, rev:11.2, gm:4.1, rate:6.0, abc:88, ppe:-0.4, gmr:3.6, gmHist:[33,34,37], revAbs:[6,9,11.2]},
+      {site:"Singapore", vol:-10.5, rev:-12.0, gm:-6.0, rate:-3.0, abc:95, ppe:0.3, gmr:-5.2, gmHist:[42,41,39], revAbs:[-8,-10,-12]},
+      {site:"Bangkok", vol:4.9, rev:5.2, gm:5.1, rate:1.1, abc:91, ppe:0.2, gmr:1.9, gmHist:[29,31,32], revAbs:[2,4,5.2]},
+      {site:"Seoul", vol:0.2, rev:-4.7, gm:-5.5, rate:-1.2, abc:87, ppe:-0.1, gmr:-3.3, gmHist:[36,35,34], revAbs:[-1,-2.9,-4.7]},
+      {site:"Shanghai", vol:12.1, rev:9.7, gm:10.9, rate:3.0, abc:93, ppe:0.6, gmr:4.9, gmHist:[31,33,36], revAbs:[7,8,9.7]},
+    ];
+
+    const el = (q) => document.querySelector(q);
+    const tbody = el('#tbl tbody');
+
+    const state = {
+      thrWarn: 5, thrCrit: 10,
+      gmrWarn: 3, gmrCrit: 5,
+      abcMin: 90, ppeMin: 0,
+      month: 9
+    };
+
+    function refModelLabel(m){
+      return (m>=7? 'FC (Jul–Dec)':'BUD (Jan–Jun)');
+    }
+
+    function classify(val, warn, crit){
+      const a = Math.abs(val);
+      if(a >= crit) return 'amber-red';
+      if(a >= warn) return 'amber';
+      return 'ok';
+    }
+
+    function kpiCell(val, unit, warn, crit){
+      const cls = classify(val, warn, crit);
+      const s = unit === 'pts' ? `${val.toFixed(1)} ${unit}` : `${val.toFixed(1)}%`;
+      return `<span class="badge ${cls} var">${s}</span>`
+    }
+
+    function abcCell(v, min){
+      const cls = v < min ? 'amber-red' : 'ok';
+      return `<span class="badge ${cls} var">${v.toFixed(0)}%</span>`
+    }
+
+    function ppeCell(v, min){
+      const cls = v < min ? 'amber-red' : 'ok';
+      return `<span class="badge ${cls} var">${v.toFixed(1)}</span>`
+    }
+
+    function gmrCell(v, warn, crit){
+      const a = Math.abs(v);
+      const cls = a >= crit ? 'amber-red' : a >= warn ? 'amber' : 'ok';
+      return `<span class="badge ${cls} var">${v.toFixed(1)} pts</span>`
+    }
+
+    function needsComment(site){
+      const s = state;
+      const breaches = [];
+      if(Math.abs(site.vol) >= s.thrWarn) breaches.push('vol');
+      if(Math.abs(site.rev) >= s.thrWarn) breaches.push('rev');
+      if(Math.abs(site.gm) >= s.thrWarn) breaches.push('gm');
+      if(Math.abs(site.rate) >= s.thrWarn) breaches.push('rate');
+      if(site.abc < s.abcMin) breaches.push('abc');
+      if(site.ppe < s.ppeMin) breaches.push('ppe');
+      if(Math.abs(site.gmr) >= s.gmrWarn) breaches.push('gmr');
+      return breaches;
+    }
+
+    function renderTable(){
+      tbody.innerHTML = '';
+      SITES.forEach((s, idx)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <th>${s.site}</th>
+          <td>${kpiCell(s.vol, '%', state.thrWarn, state.thrCrit)}</td>
+          <td>${kpiCell(s.rev, '%', state.thrWarn, state.thrCrit)}</td>
+          <td>${kpiCell(s.gm, '%', state.thrWarn, state.thrCrit)}</td>
+          <td>${kpiCell(s.rate, '%', state.thrWarn, state.thrCrit)}</td>
+          <td>${abcCell(s.abc, state.abcMin)}</td>
+          <td>${ppeCell(s.ppe, state.ppeMin)}</td>
+          <td>${gmrCell(s.gmr, state.gmrWarn, state.gmrCrit)}</td>
+          <td>${needsComment(s).length?'<span class="need-comment">Comment required</span>':'<span class="badge">—</span>'}</td>
+        `;
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click',()=>selectSite(idx));
+        tbody.appendChild(tr);
+      });
+      updateSummary();
+    }
+
+    function updateSummary(){
+      const s = state;
+      let needing = 0, warn=0, crit=0, abcBad=0, ppeBad=0, gmrBad=0;
+      SITES.forEach(x=>{
+        const nc = needsComment(x);
+        if(nc.length) needing++;
+        // warn/crit counts for core % KPIs
+        ['vol','rev','gm','rate'].forEach(k=>{
+          const v = x[k];
+          if(Math.abs(v) >= s.thrCrit) crit++;
+          else if(Math.abs(v) >= s.thrWarn) warn++;
+        });
+        if(x.abc < s.abcMin) abcBad++;
+        if(x.ppe < s.ppeMin) ppeBad++;
+        if(Math.abs(x.gmr) >= s.gmrCrit) gmrBad++;
+      });
+      el('#summaryRow').innerHTML = `
+        <div class="chip"><b>${needing}</b> sites require attention</div>
+        <div class="chip"><b>${warn}</b> amber deviations</div>
+        <div class="chip"><b>${crit}</b> amber‑red deviations</div>
+        <div class="chip"><b>${abcBad}</b> ABC < ${s.abcMin}%</div>
+        <div class="chip"><b>${ppeBad}</b> PPE < ${s.ppeMin}</div>
+        <div class="chip"><b>${gmrBad}</b> GMR ≥ ${s.gmrCrit} pts</div>
+      `;
+    }
+
+    function selectSite(i){
+      const s = SITES[i];
+      el('#dSite').textContent = s.site;
+      el('#dRef').textContent = `Reference: ${refModelLabel(state.month)} • MTD view`;
+      // Fake visuals based on latest numbers
+      el('#gmTrend').style.width = Math.min(100, Math.max(0, s.gmHist[s.gmHist.length-1])) + '%';
+      el('#revTrend').style.width = Math.min(100, Math.max(0, 50 + s.rev)) + '%';
+      el('#dABC').textContent = `ABC: ${s.abc.toFixed(0)}%`;
+      el('#dPPE').textContent = `PPE: ${s.ppe.toFixed(1)}`;
+      el('#dGMR').textContent = `GMR Δ: ${s.gmr.toFixed(1)} pts`;
+      el('#dComment').style.display = needsComment(s).length? 'inline-flex':'none';
+    }
+
+    function wire(){
+      el('#thr5').addEventListener('input', e=>{state.thrWarn=+e.target.value; el('#thr5v').textContent = `${state.thrWarn}%`; renderTable();});
+      el('#thr10').addEventListener('input', e=>{state.thrCrit=+e.target.value; el('#thr10v').textContent = `${state.thrCrit}%`; renderTable();});
+      el('#gmrA').addEventListener('change', e=>{state.gmrWarn=+e.target.value; renderTable();});
+      el('#gmrR').addEventListener('change', e=>{state.gmrCrit=+e.target.value; renderTable();});
+      el('#abcMin').addEventListener('change', e=>{state.abcMin=+e.target.value; renderTable();});
+      el('#ppeMin').addEventListener('change', e=>{state.ppeMin=+e.target.value; renderTable();});
+      el('#monthSel').addEventListener('change', e=>{state.month=+e.target.value; el('#refModel').textContent = refModelLabel(state.month);});
+      el('#resetBtn').addEventListener('click', ()=>{
+        state.thrWarn=5; state.thrCrit=10; state.gmrWarn=3; state.gmrCrit=5; state.abcMin=90; state.ppeMin=0;
+        el('#thr5').value=5; el('#thr10').value=10; el('#gmrA').value=3; el('#gmrR').value=5; el('#abcMin').value=90; el('#ppeMin').value=0; el('#thr5v').textContent='5%'; el('#thr10v').textContent='10%';
+        renderTable();
+      });
+    }
+
+    // init
+    wire();
+    renderTable();
+  </script>
+</body>
+</html>
